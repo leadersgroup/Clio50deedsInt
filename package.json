@@ -1,0 +1,25 @@
+{
+  "name": "clio-50deeds-integration",
+  "version": "1.0.0",
+  "description": "Clio Manage <-> 50deeds.com deed-order integration. One-click 'Order a deed with 50deeds' custom action on an estate matter.",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node src/db/migrate.js",
+    "register-action": "node src/scripts/registerCustomAction.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
+    "stripe": "^16.2.0"
+  }
+}

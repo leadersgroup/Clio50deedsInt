@@ -41,11 +41,16 @@ export const config = {
     webhookSecret: optional('STRIPE_WEBHOOK_SECRET'),
   },
 
-  orderSystem: {
-    url: optional('ORDER_SYSTEM_URL'),
-    apiKey: optional('ORDER_SYSTEM_API_KEY'),
+  // 50deeds Enterprise API (Base44 function) — same pipeline as fastwill.com orders.
+  enterprise: {
+    url: optional(
+      'ENTERPRISE_API_URL',
+      'https://50-deedscom-enterprise-db0653f4.base44.app/api/functions/enterpriseApi',
+    ),
+    apiKey: optional('ENTERPRISE_API_KEY'),
+    // No API key configured -> run in MOCK mode (local dev / tests).
     get mock() {
-      return !this.url;
+      return !this.apiKey;
     },
   },
 

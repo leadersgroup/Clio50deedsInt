@@ -2,16 +2,25 @@ import express from 'express';
 import { config } from '../config.js';
 import { getDraft, updateDraftData, setDraftStripeSession } from '../db/drafts.js';
 import { lookupProperty } from '../services/countyLookup.js';
-import { createOrder } from '../services/orderSystem.js';
-import { priceForState, priceDisplay } from '../services/priceTable.js';
+import { resolvePrice, dollars } from '../services/priceTable.js';
+import { isValidDeedType, DEED_TYPES } from '../services/deedTypes.js';
 import { stripe } from '../stripe/client.js';
 
 export const orderRouter = express.Router();
 
-// Live price lookup for the form.
-orderRouter.get('/price', (req, res) => {
-  const state = String(req.query.state || '');
-  res.json({ cents: priceForState(state), display: priceDisplay(state) });
+// Live price lookup for the form. Pulls authoritative pricing from the Enterprise
+// /pricing endpoint (per county + deed type), falling back to the static table.
+orderRouter.get('/price', async (req, res, next) => {
+  try {
+    const price = await resolvePrice({
+      state: String(req.query.state || ''),
+      county: String(req.query.county || ''),
+      deedType: String(req.query.deedType || ''),
+    });
+    res.json({ cents: price.cents, display: price.display, source: price.source, breakdown: price.breakdown });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Render the pre-filled order form for a draft.
@@ -19,11 +28,12 @@ orderRouter.get('/:draftId', async (req, res, next) => {
   try {
     const draft = await getDraft(req.params.draftId);
     if (!draft) return res.status(404).send('Order draft not found or expired.');
-    res.render('orderForm', {
-      draftId: draft.id,
-      d: draft.data,
-      priceDisplay: priceDisplay(draft.data.state?.value),
+    const price = await resolvePrice({
+      state: draft.data.state?.value,
+      county: draft.data.county?.value,
+      deedType: draft.data.deedType?.value,
     });
+    res.render('orderForm', { draftId: draft.id, d: draft.data, priceDisplay: price.display, deedTypes: DEED_TYPES });
   } catch (err) {
     next(err);
   }
@@ -61,7 +71,9 @@ orderRouter.post('/:draftId/county-lookup', async (req, res, next) => {
   }
 });
 
-// Submit: persist attorney edits, create the 50deeds order, start Stripe checkout.
+// Submit: persist attorney edits, then start Stripe checkout for the resolved price.
+// The Enterprise order itself is created AFTER payment succeeds (see routes/stripe.js)
+// so it arrives already paid — the same way fastwill.com orders reach the pipeline.
 orderRouter.post('/:draftId/submit', async (req, res, next) => {
   try {
     const draft = await getDraft(req.params.draftId);
@@ -69,66 +81,51 @@ orderRouter.post('/:draftId/submit', async (req, res, next) => {
 
     const body = req.body || {};
     const state = String(body.state || draft.data.state?.value || '').toUpperCase();
+    const county = String(body.county || draft.data.county?.value || '');
+    const deedType = String(body.deedType || '');
+
+    if (!isValidDeedType(deedType)) {
+      return res.status(400).send('Please choose a valid deed type.');
+    }
 
     // Merge attorney-confirmed values into the draft data.
-    const fields = [
-      'grantorName', 'grantorAddress', 'granteeName', 'propertyAddress',
-      'county', 'state', 'apn', 'legalDescription', 'priorDeedReference', 'deedType',
+    const editable = [
+      'grantorName', 'grantorAddress', 'granteeName', 'propertyAddress', 'county', 'state',
+      'apn', 'legalDescription', 'priorDeedReference', 'deedType', 'contactEmail', 'additionalInstructions',
     ];
     const data = draft.data;
-    for (const f of fields) {
+    for (const f of editable) {
       if (body[f] !== undefined) {
         data[f] = { ...(data[f] || {}), value: body[f], needsConfirmation: false };
       }
     }
+    data.state = { ...(data.state || {}), value: state };
     await updateDraftData(draft.id, data);
 
-    // Create the order in the existing 50deeds system of record (Base44 pipeline).
-    const orderPayload = {
-      source: 'clio-integration',
-      clio_matter_id: draft.clio_matter_id,
-      clio_display_number: draft.display_number,
-      grantor_name: body.grantorName,
-      grantor_address: body.grantorAddress,
-      grantee_name: body.granteeName,
-      property_address: body.propertyAddress,
-      county: body.county,
-      state,
-      apn: body.apn,
-      legal_description: body.legalDescription,
-      prior_deed_reference: body.priorDeedReference,
-      deed_type: body.deedType,
-      amount_cents: priceForState(state),
-    };
-    const order = await createOrder(orderPayload);
+    // Resolve the price to charge (Enterprise pricing, per county + deed type).
+    const price = await resolvePrice({ state, county, deedType });
 
-    // Record the order id on the draft so the webhook / success page can tag it.
-    data.orderId = order.id;
-    await updateDraftData(draft.id, data);
-
-    // Stripe Checkout for the state's flat rate.
-    const amount = priceForState(state);
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
+      ...(body.contactEmail ? { customer_email: body.contactEmail } : {}),
       line_items: [
         {
           quantity: 1,
           price_data: {
             currency: 'usd',
-            unit_amount: amount,
+            unit_amount: price.cents,
             product_data: {
-              name: `50deeds ${deedTypeLabel(body.deedType)} — ${state}`,
-              description: `Clio matter ${draft.display_number || draft.clio_matter_id}`,
+              name: `50deeds deed order — ${state}${county ? ' / ' + county : ''}`,
+              description: `${deedType} · Clio matter ${draft.display_number || draft.clio_matter_id}`,
             },
           },
         },
       ],
-      // Trace everything back to the order + matter on payment success.
       metadata: {
         draft_id: draft.id,
-        order_id: String(order.id),
         clio_matter_id: String(draft.clio_matter_id),
         clio_display_number: draft.display_number || '',
+        price_source: price.source,
       },
       success_url: `${config.appBaseUrl}/order/${draft.id}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${config.appBaseUrl}/order/${draft.id}`,
@@ -141,46 +138,44 @@ orderRouter.post('/:draftId/submit', async (req, res, next) => {
   }
 });
 
-// Success landing. Confirms payment (webhook is the source of truth for fulfillment,
-// but we also reconcile here so the attorney sees confirmation immediately).
+// Success landing. The webhook is the source of truth for submitting the order to
+// the Enterprise pipeline; we also reconcile here so the attorney sees confirmation
+// immediately even if the webhook is delayed.
 orderRouter.get('/:draftId/success', async (req, res, next) => {
   try {
     const draft = await getDraft(req.params.draftId);
     if (!draft) return res.status(404).send('Order not found.');
 
     const sessionId = String(req.query.session_id || '');
-    let paid = draft.status === 'paid';
-    if (!paid && sessionId) {
+    let current = draft;
+    if (draft.status !== 'paid' && sessionId) {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
-      paid = session.payment_status === 'paid';
-      if (paid) {
+      if (session.payment_status === 'paid') {
         const { finalizePaidOrder } = await import('./stripe.js');
         await finalizePaidOrder(session);
+        current = (await getDraft(draft.id)) || draft;
       }
     }
 
     res.status(200).send(successHtml({
-      paid,
-      displayNumber: draft.display_number,
-      orderId: draft.order_id || draft.data?.orderId,
+      paid: current.status === 'paid',
+      displayNumber: current.display_number,
+      orderId: current.order_id,
+      customOrderId: current.data?.enterpriseCustomOrderId,
     }));
   } catch (err) {
     next(err);
   }
 });
 
-function deedTypeLabel(t) {
-  return { warranty: 'Warranty Deed', quitclaim: 'Quitclaim Deed', tod: 'TOD Deed', grant: 'Grant Deed' }[t] || 'Deed';
-}
-
-function successHtml({ paid, displayNumber, orderId }) {
+function successHtml({ paid, displayNumber, orderId, customOrderId }) {
   return `<!doctype html><html><head><meta charset="utf-8"><title>${paid ? 'Order confirmed' : 'Payment pending'}</title>
 <style>body{font-family:system-ui,sans-serif;max-width:560px;margin:80px auto;padding:0 20px;color:#1a2b4a}
 .ok{color:#1a7f4b}code{background:#f1f4f9;padding:2px 6px;border-radius:4px}</style></head>
 <body><h1>${paid ? '✅ Deed order confirmed' : '⏳ Payment processing'}</h1>
 ${paid
-  ? `<p class="ok">Your deed order has been placed and is in 50deeds fulfillment.</p>
-     <p>Order <code>${orderId || ''}</code> · Clio matter <code>${displayNumber || ''}</code></p>`
-  : `<p>We're confirming your payment. If this persists, check your email for a receipt.</p>`}
+  ? `<p class="ok">Your deed order has been submitted to 50deeds and is in fulfillment.</p>
+     <p>Order <code>${customOrderId || orderId || ''}</code> · Clio matter <code>${displayNumber || ''}</code></p>`
+  : `<p>We're confirming your payment and submitting your order. If this persists, check your email for a receipt.</p>`}
 </body></html>`;
 }

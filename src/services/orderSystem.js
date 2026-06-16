@@ -1,62 +1,47 @@
-import { config } from '../config.js';
+import { createOrder } from './enterpriseApi.js';
 
-// Adapter to the EXISTING 50deeds order system of record (Base44 + Node middleware).
-// Creating an order here makes it flow through the same fulfillment pipeline as a
-// normal web order. In MOCK mode it just echoes an order id so local dev works.
+// Submit a paid deed order to the 50deeds Enterprise system of record (Base44),
+// the same pipeline fastwill.com orders flow through. Called AFTER Stripe payment
+// succeeds, so the order arrives already paid.
+//
+// `draft` is the deed_order_drafts row; `data` is its mapped/confirmed field values.
+export async function submitPaidOrder(draft, { stripeSessionId, amountCents } = {}) {
+  const data = draft.data || {};
+  const val = (f) => (data[f] && typeof data[f] === 'object' ? data[f].value : data[f]) || '';
 
-export async function createOrder(orderPayload) {
-  if (config.orderSystem.mock) {
-    const id = `mock_order_${shortHash(JSON.stringify(orderPayload))}`;
-    return { id, status: 'created', mock: true };
-  }
+  // Trace back to the Clio matter (the Enterprise API has no dedicated Clio field,
+  // so matter identity rides in additional_instructions + custom traceability).
+  const traceLines = [
+    `Source: Clio Manage integration`,
+    draft.display_number ? `Clio matter: ${draft.display_number}` : null,
+    draft.clio_matter_id ? `Clio matter id: ${draft.clio_matter_id}` : null,
+    stripeSessionId ? `Stripe session: ${stripeSessionId}` : null,
+    val('priorDeedReference') ? `Prior deed: ${val('priorDeedReference')}` : null,
+    val('apn') ? `APN: ${val('apn')}` : null,
+    val('legalDescription') ? `Legal description: ${val('legalDescription')}` : null,
+  ].filter(Boolean);
 
-  const res = await fetch(`${config.orderSystem.url.replace(/\/$/, '')}/orders`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      ...(config.orderSystem.apiKey ? { Authorization: `Bearer ${config.orderSystem.apiKey}` } : {}),
-    },
-    body: JSON.stringify(orderPayload),
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`50deeds order create failed (${res.status}): ${body.slice(0, 300)}`);
-  }
-  const data = await res.json();
-  return { id: data.id ?? data.order_id, status: data.status ?? 'created', raw: data };
-}
+  const extra = val('additionalInstructions');
+  if (extra) traceLines.push(`Notes: ${extra}`);
 
-// Write Clio traceability (matter number + id) + payment info onto an existing order
-// after Stripe payment succeeds, so fulfillment can trace it back to the matter.
-export async function tagOrderPaid(orderId, { clioMatterId, displayNumber, stripeSessionId, amountCents }) {
-  if (config.orderSystem.mock) {
-    return { id: orderId, status: 'paid', mock: true };
-  }
-  const res = await fetch(`${config.orderSystem.url.replace(/\/$/, '')}/orders/${orderId}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      ...(config.orderSystem.apiKey ? { Authorization: `Bearer ${config.orderSystem.apiKey}` } : {}),
-    },
-    body: JSON.stringify({
-      status: 'paid',
-      clio_matter_id: clioMatterId,
-      clio_display_number: displayNumber,
-      stripe_session_id: stripeSessionId,
-      amount_cents: amountCents,
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`50deeds order tag-paid failed (${res.status}): ${body.slice(0, 300)}`);
-  }
-  return res.json();
-}
+  const fields = {
+    property_address: val('propertyAddress'),
+    grantor_name: val('grantorName'),
+    grantee_name: val('granteeName'),
+    deed_type: val('deedType'),
+    county: val('county'),
+    state: (val('state') || '').toUpperCase(),
+    contact_email: val('contactEmail'),
+    additional_instructions: traceLines.join('\n'),
+    // Carry payment + Clio identity as explicit fields too (ignored by the API if
+    // unknown, but useful if/when the backend adds columns for them).
+    payment_status: 'paid',
+    amount_cents: amountCents,
+    stripe_session_id: stripeSessionId,
+    clio_matter_id: draft.clio_matter_id,
+    clio_display_number: draft.display_number,
+  };
 
-function shortHash(s) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h.toString(16);
+  const order = await createOrder(fields);
+  return { id: order.id, customOrderId: order.custom_order_id, status: order.status, raw: order };
 }

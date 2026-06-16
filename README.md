@@ -18,10 +18,35 @@ Attorney clicks action on Matter ─▶ Clio GET /clio/custom-action?subject_url
                               │
    confirm property address ──┼──▶ POST /order/:id/county-lookup  ─▶ APN, legal desc, prior deed
                               │
-   submit ────────────────────┴──▶ create 50deeds order ─▶ Stripe Checkout
+   pick deed type + county ───┼──▶ GET /order/price  ─▶ Enterprise /pricing (per county + deed type)
+                              │
+   submit ────────────────────┴──▶ Stripe Checkout (price from Enterprise pricing)
                                         │
-   payment success ─▶ Stripe webhook ─▶ tag order paid + write Clio matter # / id
+   payment success ─▶ Stripe webhook ─▶ submit PAID order to 50deeds Enterprise API
+                                        (Base44 pipeline — same as fastwill.com),
+                                        Clio matter # / id embedded for traceability
 ```
+
+### Order routing — 50deeds Enterprise API (same pipeline as fastwill.com)
+
+Orders are sent to the 50deeds **Enterprise API**, a Base44 serverless function. Two things
+are specific to it and are handled in [src/services/enterpriseApi.js](src/services/enterpriseApi.js):
+
+- **Every call is an HTTP POST** to one function URL; the REST method, path, and API key
+  travel in the JSON body: `{ "_path": "/orders", "_method": "POST", "_api_key": "…", …fields }`.
+- **Pricing is authoritative server-side** via `/pricing/{state}/{county}` (keyed by deed type;
+  returns `service_fee + recording_fee + fincen_fee − premium_discount = total`). The static
+  per-state table in [priceTable.js](src/services/priceTable.js) is only a fallback when the
+  server has no row for that county.
+
+Because the Enterprise system expects orders to arrive **already paid**, the flow collects
+Stripe payment first and creates the Enterprise order on `checkout.session.completed`
+([src/routes/stripe.js](src/routes/stripe.js) → `submitPaidOrder`), embedding the Clio matter
+number/id + Stripe session in `additional_instructions` for fulfillment traceability.
+
+**Deed types** are the 9 FinCEN-classified strings the Enterprise API expects
+([src/services/deedTypes.js](src/services/deedTypes.js)) — estate-relevant ones first
+(individual → own revocable trust = trust funding; transfer due to death of individual).
 
 ## Stack
 
@@ -29,8 +54,8 @@ Attorney clicks action on Matter ─▶ Clio GET /clio/custom-action?subject_url
 - **Postgres** for encrypted OAuth tokens (AES-256-GCM) and short-lived order drafts.
 - **Stripe** Checkout for payment (existing 50deeds account).
 - **Clio Manage API v4** (US server `https://app.clio.com/api/v4`).
-- Adapters to the existing 50deeds **order system** (Base44) and **county lookup** —
-  both run in MOCK mode locally when their URLs are unset.
+- Adapters to the 50deeds **Enterprise API** (Base44 — order routing + pricing) and the
+  **county lookup** — both run in MOCK mode locally when their keys/URLs are unset.
 
 ## Project layout
 
@@ -46,8 +71,10 @@ Attorney clicks action on Matter ─▶ Clio GET /clio/custom-action?subject_url
 | `src/clio/matters.js` | Fetch matter (with nonce) + contact detail; redaction-aware |
 | `src/services/fieldMapper.js` | Clio matter → deed-order shape, with per-field provenance |
 | `src/services/countyLookup.js` | 50deeds county property-record lookup adapter |
-| `src/services/orderSystem.js` | 50deeds order create + paid-tagging adapter |
-| `src/services/priceTable.js` | Flat-rate price per state ($299 / $649 NY) |
+| `src/services/enterpriseApi.js` | 50deeds Enterprise API (Base44) client — orders, pricing, webhooks |
+| `src/services/orderSystem.js` | Maps a paid draft → Enterprise order + submits it |
+| `src/services/deedTypes.js` | The 9 FinCEN deed-type strings the Enterprise API expects |
+| `src/services/priceTable.js` | Resolve price via Enterprise `/pricing`, static fallback |
 | `src/routes/customAction.js` | Custom-action receiver + nonce validation |
 | `src/routes/order.js` | Form render, county lookup, submit, success |
 | `src/routes/stripe.js` | Checkout webhook + paid finalization |
@@ -76,7 +103,8 @@ Copy `.env.example` → `.env` and fill it in. Generate the secrets:
 node -e "console.log('TOKEN_ENCRYPTION_KEY=' + require('crypto').randomBytes(32).toString('base64'))"
 node -e "console.log('COOKIE_SECRET=' + require('crypto').randomBytes(32).toString('hex'))"
 ```
-Leave `ORDER_SYSTEM_URL` / `COUNTY_LOOKUP_URL` blank to run those in MOCK mode for local dev.
+Leave `ENTERPRISE_API_KEY` / `COUNTY_LOOKUP_URL` blank to run those in MOCK mode for local dev.
+(`ENTERPRISE_API_URL` defaults to the known Base44 function URL; you supply a current API key.)
 
 ### 3. Install + migrate + run
 ```bash
@@ -113,7 +141,7 @@ The custom action URL Clio is configured with: **`https://<your-app>/clio/custom
    (mock data if `COUNTY_LOOKUP_URL` is unset).
 6. Pick a deed type + state, continue to Stripe, pay with a **test card** `4242 4242 4242 4242`.
 7. An order record is created in the 50deeds backend tagged with the Clio matter number
-   (mock id printed if `ORDER_SYSTEM_URL` is unset).
+   via the Enterprise API (mock id printed if `ENTERPRISE_API_KEY` is unset).
 
 Run unit tests (no DB/network needed):
 ```bash

@@ -110,11 +110,17 @@
         <label>Deed type <span class="tag confirm">confirm</span></label>
         <select name="deedType" id="deedType" required>
           <option value="">— select —</option>
-          <option value="warranty">Warranty deed</option>
-          <option value="quitclaim">Quitclaim deed</option>
-          <option value="tod">Transfer-on-death (TOD) deed</option>
-          <option value="grant">Grant deed</option>
+          <% deedTypes.forEach(function(t){ %>
+            <option value="<%= t.value %>" <%= d.deedType.value === t.value ? 'selected' : '' %>><%= t.label %></option>
+          <% }) %>
         </select>
+        <div class="hint">Deed type sets the FinCEN reportability and price. For estate work the first options (trust funding, transfer on death) are most common.</div>
+
+        <label>Contact email <%- d.contactEmail.source === 'clio' ? '<span class="tag clio">from Clio</span>' : '<span class="tag confirm">confirm</span>' %></label>
+        <input type="email" name="contactEmail" id="contactEmail" value="<%= d.contactEmail.value %>" placeholder="attorney@firm.com" required />
+
+        <label>Additional instructions <span class="tag confirm">optional</span></label>
+        <textarea name="additionalInstructions" placeholder="Anything fulfillment should know"><%= d.additionalInstructions ? d.additionalInstructions.value : '' %></textarea>
 
         <label>Matter reference <span class="tag clio">from Clio</span></label>
         <input name="matterReference" value="<%= d.matterReference.value %>" readonly />
@@ -171,17 +177,24 @@
       }
     });
 
-    // Live price by state
+    // Live price from the Enterprise pricing endpoint (per state + county + deed type).
     async function updatePrice() {
       const state = $('state').value.trim().toUpperCase();
       if (state.length !== 2) return;
+      const params = new URLSearchParams({
+        state,
+        county: $('county').value.trim(),
+        deedType: $('deedType').value,
+      });
       try {
-        const res = await fetch('/order/price?state=' + encodeURIComponent(state));
+        const res = await fetch('/order/price?' + params.toString());
         const data = await res.json();
         if (data.display) $('priceDisplay').textContent = data.display;
       } catch {}
     }
     $('state').addEventListener('change', updatePrice);
+    $('county').addEventListener('change', updatePrice);
+    $('deedType').addEventListener('change', updatePrice);
   </script>
 </body>
 </html>

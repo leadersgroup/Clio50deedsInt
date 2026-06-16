@@ -1,8 +1,8 @@
 import express from 'express';
 import { config } from '../config.js';
 import { stripe } from '../stripe/client.js';
-import { getDraftByStripeSession, getDraft, markDraft } from '../db/drafts.js';
-import { tagOrderPaid } from '../services/orderSystem.js';
+import { getDraftByStripeSession, getDraft, markDraft, updateDraftData } from '../db/drafts.js';
+import { submitPaidOrder } from '../services/orderSystem.js';
 
 export const stripeRouter = express.Router();
 
@@ -40,9 +40,11 @@ stripeRouter.post('/webhook', async (req, res) => {
   }
 });
 
-// Idempotently finalize a paid order: mark draft paid + tag the 50deeds order with
-// the Clio matter number/id and Stripe session for fulfillment traceability.
-// Called from both the webhook and the success page (reconciliation).
+// Idempotently finalize a paid order: submit it to the 50deeds Enterprise pipeline
+// (the same one fastwill.com orders flow through) with the Clio matter number/id and
+// Stripe session embedded for traceability, then mark the draft paid.
+// Called from both the webhook and the success page (reconciliation) — guarded so the
+// Enterprise order is created at most once.
 export async function finalizePaidOrder(session) {
   const draft =
     (await getDraftByStripeSession(session.id)) ||
@@ -51,16 +53,16 @@ export async function finalizePaidOrder(session) {
     console.warn('[stripe] no draft for session', session.id);
     return;
   }
-  if (draft.status === 'paid') return; // already finalized
+  if (draft.status === 'paid' || draft.order_id) return; // already submitted
 
-  const orderId = draft.order_id || draft.data?.orderId || session.metadata?.order_id;
-  if (orderId) {
-    await tagOrderPaid(orderId, {
-      clioMatterId: draft.clio_matter_id,
-      displayNumber: draft.display_number,
-      stripeSessionId: session.id,
-      amountCents: session.amount_total,
-    });
-  }
-  await markDraft(draft.id, { status: 'paid', orderId });
+  const order = await submitPaidOrder(draft, {
+    stripeSessionId: session.id,
+    amountCents: session.amount_total,
+  });
+
+  // Record the Enterprise order id + custom order id on the draft for the success page.
+  const data = draft.data || {};
+  data.enterpriseCustomOrderId = order.customOrderId;
+  await updateDraftData(draft.id, data);
+  await markDraft(draft.id, { status: 'paid', orderId: order.id });
 }

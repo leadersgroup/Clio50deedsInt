@@ -94,7 +94,9 @@ export function mapMatterToOrder(matter, relatedContacts = []) {
     legalDescription: field('', 'county-lookup'),
     priorDeedReference: field('', 'county-lookup'),
 
-    deedType: field('', 'attorney-select'), // warranty | quitclaim | tod | grant
+    deedType: field('', 'attorney-select'), // one of the FinCEN deed-type strings
+    contactEmail: field(client.primary_email_address?.address || '', client.primary_email_address?.address ? 'clio' : 'missing'),
+    additionalInstructions: field('', 'optional'),
   };
 }
 

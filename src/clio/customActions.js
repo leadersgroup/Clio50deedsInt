@@ -1,7 +1,7 @@
 import { config } from '../config.js';
 import { getValidAccessToken } from './oauth.js';
 
-const LABEL = 'Order a deed with 50deeds';
+const LABEL = 'Order a deed transfer with 50deeds';
 const UI_REFERENCE = 'matters/show';
 
 function targetUrl() {
@@ -20,13 +20,17 @@ export async function listCustomActions(clioUserId) {
   return json.data || [];
 }
 
-// Register the "Order a deed with 50deeds" action on the Matter screen.
-// Idempotent: if an action with the same label + ui_reference exists, returns it.
+// Register the deed-order action on the Matter screen.
+// Idempotent and self-healing: our action is identified by target_url + ui_reference
+// (stable across label changes), so renaming LABEL updates the existing action in
+// place instead of creating a duplicate button.
 export async function ensureCustomAction(clioUserId) {
   const existing = await listCustomActions(clioUserId);
-  const match = existing.find((a) => a.label === LABEL && a.ui_reference === UI_REFERENCE);
+  const match =
+    existing.find((a) => a.target_url === targetUrl() && a.ui_reference === UI_REFERENCE) ||
+    existing.find((a) => a.ui_reference === UI_REFERENCE && /50deeds/i.test(a.label || ''));
   if (match) {
-    if (match.target_url !== targetUrl()) {
+    if (match.label !== LABEL || match.target_url !== targetUrl()) {
       return updateCustomAction(clioUserId, match.id);
     }
     return { created: false, action: match };
@@ -58,7 +62,7 @@ async function updateCustomAction(clioUserId, id) {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    body: JSON.stringify({ data: { target_url: targetUrl() } }),
+    body: JSON.stringify({ data: { label: LABEL, target_url: targetUrl() } }),
   });
   if (!res.ok) throw new Error(`Update custom_action failed (${res.status}): ${await res.text()}`);
   const json = await res.json();

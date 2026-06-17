@@ -1,6 +1,6 @@
 # 50deeds × Clio Manage integration
 
-One-click **"Order a deed with 50deeds"** custom action on a Clio Manage estate matter.
+One-click **"Order a deed transfer with 50deeds"** custom action on a Clio Manage estate matter.
 The attorney clicks it on the matter screen and lands on a 50deeds deed-order form
 **already pre-filled** with the client and property data from that matter — no re-keying.
 Confirming the property address auto-fills the deed-critical legal data (APN, legal
@@ -127,7 +127,7 @@ on success we store their tokens and register the custom action automatically.
 or `GET /clio/register-action?user_id=<id>`.)
 
 The custom action URL Clio is configured with: **`https://<your-app>/clio/custom-action`**
-(label `Order a deed with 50deeds`, `ui_reference` `matters/show`).
+(label `Order a deed transfer with 50deeds`, `ui_reference` `matters/show`).
 
 ### 6. Enable "Add to Clio" (one-click connect from Clio's App Integrations page)
 [Add to Clio](https://docs.developers.clio.com/guides/add-to-clio/implementing-add-to-clio/)
@@ -150,7 +150,7 @@ registered automatically. Use the portal's **preview** link to test the button +
    with a client (person/company), a `primary_address`, and a related contact
    (e.g. a trust as "Trustee"). Optionally add a "Property Address" custom field.
 2. Install the app via `/clio/install` from that account.
-3. Open the matter → click **Order a deed with 50deeds**.
+3. Open the matter → click **Order a deed transfer with 50deeds**.
 4. The order form opens with **grantor name + address pre-filled** from the matter client.
 5. Confirm the property address → **APN + legal description + prior deed auto-populate**
    (mock data if `COUNTY_LOOKUP_URL` is unset).

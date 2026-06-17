@@ -1,5 +1,5 @@
 import express from 'express';
-import { fetchMatter, fetchContact } from '../clio/matters.js';
+import { fetchMatter, fetchContact, fetchMatterRelationships } from '../clio/matters.js';
 import { mapMatterToOrder } from '../services/fieldMapper.js';
 import { createDraft } from '../db/drafts.js';
 
@@ -39,14 +39,35 @@ customActionRouter.get('/custom-action', async (req, res, next) => {
         // Bad/expired nonce, or insufficient permission.
         return res
           .status(403)
-          .send(page('Could not verify this request', 'The secure link from Clio was invalid or expired (it lasts 60 seconds). Go back to the matter and click “Order a deed with 50deeds” again.'));
+          .send(page('Could not verify this request', 'The secure link from Clio was invalid or expired (it lasts 60 seconds). Go back to the matter and click “Order a deed transfer with 50deeds” again.'));
       }
       throw err;
     }
 
-    // 2. Pull full detail for related contacts (grantee candidates), handling
-    //    Clio's per-contact redaction gracefully.
-    const relationships = Array.isArray(matter.relationships) ? matter.relationships : [];
+    // 1b. The matter fetch is shallow (Clio rejects grandchild field nesting), so the
+    //     client's mailing address comes from a separate contact fetch. Degrade
+    //     gracefully (attorney confirms address) if the client is redacted/missing.
+    if (matter.client?.id) {
+      try {
+        const { contact } = await fetchContact(clioUserId, matter.client.id);
+        if (contact?.primary_address) matter.client.primary_address = contact.primary_address;
+        if (!matter.client.primary_email_address && contact?.primary_email_address) {
+          matter.client.primary_email_address = contact.primary_email_address;
+        }
+      } catch (err) {
+        if (err.status !== 403) throw err; // redacted client -> proceed without address
+      }
+    }
+
+    // 2. Related contacts (grantee candidates) via a separate /relationships query,
+    //    then full detail per contact. Any failure here just yields no candidates —
+    //    the form still renders with grantor + property; attorney enters the grantee.
+    let relationships = [];
+    try {
+      relationships = await fetchMatterRelationships(clioUserId, matter.id);
+    } catch (err) {
+      if (err.status !== 403) console.error('[custom-action] relationships fetch failed:', err.message);
+    }
     const relatedContacts = [];
     for (const rel of relationships) {
       const c = rel.contact;

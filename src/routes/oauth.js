@@ -91,8 +91,8 @@ function installSuccessHtml({ clioUserId, actionRegistered, returnPath }) {
 .ok{color:#1a7f4b}.warn{color:#b26a00}code{background:#f1f4f9;padding:2px 6px;border-radius:4px}</style></head>
 <body><h1>✅ 50deeds is connected to Clio</h1>
 <p>Authorized as Clio user <code>${clioUserId}</code>.</p>
-<p>${actionRegistered ? '<span class="ok">The “Order a deed with 50deeds” action is now on your Matter screen.</span>' : '<span class="warn">Custom action not registered yet — visit <code>/clio/register-action?user_id=' + clioUserId + '</code>.</span>'}</p>
-<p>Open any estate matter in Clio and click <strong>Order a deed with 50deeds</strong>.</p>
+<p>${actionRegistered ? '<span class="ok">The “Order a deed transfer with 50deeds” action is now on your Matter screen.</span>' : '<span class="warn">Custom action not registered yet — visit <code>/clio/register-action?user_id=' + clioUserId + '</code>.</span>'}</p>
+<p>Open any estate matter in Clio and click <strong>Order a deed transfer with 50deeds</strong>.</p>
 <p><a href="${escapeHtml(returnPath)}">Continue</a></p></body></html>`;
 }
 

@@ -7,7 +7,7 @@ const MATTER_FIELDS = [
   'id',
   'display_number',
   'description',
-  'client{id,name,first_name,last_name,type,primary_address{name,street,city,province,postal_code,country},primary_email_address{address}}',
+  'client{id,name,first_name,last_name,type,primary_address{name,street,city,province,postal_code,country},primary_email_address}',
   'practice_area{id,name}',
   'relationships{id,description,contact{id,name,first_name,last_name,type}}',
   'custom_field_values{id,field_name,value,custom_field{id,name}}',
@@ -21,7 +21,7 @@ const CONTACT_FIELDS = [
   'type',
   'date_of_birth',
   'primary_address{name,street,city,province,postal_code,country}',
-  'primary_email_address{address}',
+  'primary_email_address',
 ].join(',');
 
 // Fetch a matter via its Clio subject_url, passing the single-use custom-action nonce

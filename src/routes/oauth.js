@@ -8,8 +8,15 @@ export const oauthRouter = express.Router();
 
 // Kick off install: send the firm/user to Clio's consent screen.
 // Optional ?return=<path> remembers where to send them after install.
+// "Add to Clio": Clio opens this URL (configured with ?add_to_clio_flow=1) in a popup
+// from the App Integrations page. We carry the flag through the signed `state` so the
+// callback knows to hand control back to Clio instead of rendering our own page.
 oauthRouter.get('/install', (req, res) => {
-  const state = createState({ return: typeof req.query.return === 'string' ? req.query.return : '/' });
+  const addToClio = req.query.add_to_clio_flow === '1';
+  const state = createState({
+    return: typeof req.query.return === 'string' ? req.query.return : '/',
+    addToClio,
+  });
   res.cookie('clio_oauth_state', state, {
     httpOnly: true,
     secure: config.isProd,
@@ -44,6 +51,14 @@ oauthRouter.get('/callback', async (req, res, next) => {
     }
 
     const parsed = verifyState(String(state));
+
+    // "Add to Clio" flow: the firm started this from Clio's App Integrations page in a
+    // popup. Redirect to Clio's app-integrations callback so the popup closes and we show
+    // up under the user's "My Integrations". (authBase honors non-US regional servers.)
+    if (parsed?.addToClio) {
+      return res.redirect(`${config.clio.authBase}/app_integrations_callback`);
+    }
+
     res
       .status(200)
       .send(

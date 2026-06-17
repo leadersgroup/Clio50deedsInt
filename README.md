@@ -129,6 +129,21 @@ or `GET /clio/register-action?user_id=<id>`.)
 The custom action URL Clio is configured with: **`https://<your-app>/clio/custom-action`**
 (label `Order a deed with 50deeds`, `ui_reference` `matters/show`).
 
+### 6. Enable "Add to Clio" (one-click connect from Clio's App Integrations page)
+[Add to Clio](https://docs.developers.clio.com/guides/add-to-clio/implementing-add-to-clio/)
+lets a firm connect 50deeds from inside Clio's **App Integrations** page (a popup), instead
+of hitting `/clio/install` directly. In the Clio Developer Portal under **Manage app
+directory listing**, set:
+
+- **Add to Clio URL**: `https://<your-app>/clio/install?add_to_clio_flow=1`
+- **App URL**: `https://<your-app>/`
+
+The flow is the normal OAuth handshake with one twist: `/clio/install` carries the
+`add_to_clio_flow` flag through the signed `state`, and on callback the app redirects to
+Clio's `…/app_integrations_callback` (instead of rendering our success page) so the popup
+closes and 50deeds appears under the user's **My Integrations**. The custom action is still
+registered automatically. Use the portal's **preview** link to test the button + flow.
+
 ## Testing against a Clio dev/sandbox account
 
 1. Create a Clio Manage **developer/sandbox** account and a sample **estate matter**

@@ -35,8 +35,11 @@ export async function submitPaidOrder(draft, { stripeSessionId, amountCents } = 
     contact_name: val('grantorName') || val('granteeName'),
     contact_email: val('contactEmail'),
     additional_instructions: traceLines.join('\n'),
-    // Carry payment + Clio identity as explicit fields too (ignored by the API if
-    // unknown, but useful if/when the backend adds columns for them).
+    // Payment is collected from the attorney via Stripe BEFORE this call, so the
+    // order must NOT trigger the enterprise ACH debit. Contract with the 50deeds
+    // backend for the clioint@50deeds.com account: payment_method === "external"
+    // (with a stripe_session_id present) => skip ACH, record the order as paid.
+    payment_method: 'external',
     payment_status: 'paid',
     amount_cents: amountCents,
     stripe_session_id: stripeSessionId,

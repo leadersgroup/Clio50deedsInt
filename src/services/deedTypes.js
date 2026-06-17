@@ -1,4 +1,4 @@
-// The 9 FinCEN-classified deed types the Enterprise API expects, verbatim.
+// The 10 FinCEN-classified deed types the Enterprise API expects, verbatim.
 // The `value` is the exact string the API requires for /pricing and /orders.
 // Estate-relevant types are listed first (trust funding, death transfer).
 export const DEED_TYPES = [
@@ -41,6 +41,10 @@ export const DEED_TYPES = [
   {
     value: 'Transfer to qualified intermediary for 1031 purpose: FinCEN non-reportable',
     label: '1031 exchange intermediary',
+  },
+  {
+    value: 'Transfer to regulated entity: FinCEN non-reportable',
+    label: 'Transfer to a regulated entity',
   },
 ];
 

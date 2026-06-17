@@ -1,7 +1,9 @@
 import { config } from '../config.js';
 import { getValidAccessToken } from './oauth.js';
 
-const LABEL = 'Order a deed transfer with 50deeds';
+// Clio caps custom-action labels at 32 characters (422 RecordInvalid otherwise).
+// Keep this <= 32 and clamp defensively so an over-length edit can't break registration.
+const LABEL = 'Order deed transfer with 50deeds'.slice(0, 32);
 const UI_REFERENCE = 'matters/show';
 
 function targetUrl() {

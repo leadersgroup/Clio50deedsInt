@@ -31,6 +31,8 @@ export async function submitPaidOrder(draft, { stripeSessionId, amountCents } = 
     deed_type: val('deedType'),
     county: val('county'),
     state: (val('state') || '').toUpperCase(),
+    // contact_name is REQUIRED by POST /orders; default to the client/grantor.
+    contact_name: val('grantorName') || val('granteeName'),
     contact_email: val('contactEmail'),
     additional_instructions: traceLines.join('\n'),
     // Carry payment + Clio identity as explicit fields too (ignored by the API if

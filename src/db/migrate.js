@@ -29,6 +29,20 @@ CREATE TABLE IF NOT EXISTS deed_order_drafts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_drafts_stripe_session ON deed_order_drafts (stripe_session);
+
+-- Supporting documents uploaded on the order form (homeowner ID, prior deed,
+-- certificate of trust). Stored here and served back to the 50deeds backend by a
+-- capability URL passed as the Enterprise order attachment file_url.
+CREATE TABLE IF NOT EXISTS order_files (
+  id          TEXT PRIMARY KEY,
+  draft_id    TEXT NOT NULL,
+  file_name   TEXT NOT NULL,
+  mime        TEXT,
+  size_bytes  INTEGER NOT NULL,
+  bytes       BYTEA NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_order_files_draft ON order_files (draft_id);
 `;
 
 export async function migrate() {

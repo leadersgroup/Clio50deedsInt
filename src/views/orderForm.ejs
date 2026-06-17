@@ -3,198 +3,214 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Order a deed — 50deeds</title>
+  <title>New Order — 50deeds</title>
   <style>
-    :root { --navy:#1a2b4a; --blue:#2563eb; --line:#dbe2ee; --bg:#f6f8fc; --green:#1a7f4b; --amber:#b26a00; }
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: var(--navy); background: var(--bg); margin: 0; }
-    .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; }
-    h1 { font-size: 22px; margin: 0 0 4px; }
-    .sub { color:#5b6b86; margin: 0 0 24px; font-size: 14px; }
-    .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:18px; }
-    .card h2 { font-size:15px; margin:0 0 14px; text-transform:uppercase; letter-spacing:.04em; color:#5b6b86; }
-    label { display:block; font-size:13px; font-weight:600; margin:12px 0 4px; }
-    input, select, textarea { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-size:14px; font-family:inherit; }
-    textarea { min-height:70px; resize:vertical; }
-    .tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; margin-left:8px; vertical-align:middle; }
-    .tag.clio { background:#e7f0ff; color:var(--blue); }
-    .tag.confirm { background:#fff3e0; color:var(--amber); }
-    .tag.auto { background:#e7f7ee; color:var(--green); }
-    .row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-    .hint { font-size:12px; color:#7a8aa6; margin-top:4px; }
-    button { font:inherit; cursor:pointer; border:none; border-radius:8px; padding:12px 18px; font-weight:700; }
-    .btn-primary { background:var(--blue); color:#fff; width:100%; font-size:16px; }
-    .btn-secondary { background:#eef2f9; color:var(--navy); }
-    .price { font-size:20px; font-weight:800; }
-    .redacted { color:var(--amber); font-size:12px; }
-    .lookup-status { font-size:13px; margin-top:8px; min-height:18px; }
-    .footer-note { font-size:12px; color:#7a8aa6; text-align:center; margin-top:14px; }
+    :root{--ink:#1a2b4a;--muted:#6b7a93;--line:#e2e8f2;--chip:#eaf0fb;--chipink:#2b4a86;--blue:#2563eb;--blue-dim:#a9bff2;--soft:#f7f9fc;--green:#1a7f4b;--amber:#b26a00;}
+    *{box-sizing:border-box;}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:#fafbfd;margin:0;}
+    .wrap{max-width:760px;margin:0 auto;padding:24px 20px 80px;}
+    .top{display:flex;align-items:center;gap:12px;margin:8px 0 22px;}
+    .back{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);text-decoration:none;font-size:18px;}
+    h1{font-size:24px;margin:0;font-weight:800;}
+    .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;}
+    .card-title{font-size:16px;font-weight:800;margin:0 0 18px;}
+    label{display:block;font-size:14px;font-weight:700;margin:18px 0 8px;}
+    label:first-of-type{margin-top:0;}
+    input[type=text],input[type=email],textarea,select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink);}
+    input::placeholder,textarea::placeholder{color:#9aa7bd;}
+    textarea{min-height:84px;resize:vertical;}
+    .transfer{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
+    .transfer .line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--muted);}
+    .chip{display:inline-block;background:var(--chip);color:var(--chipink);font-weight:700;font-size:13px;padding:3px 12px;border-radius:999px;}
+    .arrow{color:var(--muted);font-weight:700;}
+    .transfer .desc{color:var(--muted);font-style:italic;font-size:13px;margin-top:8px;}
+    .transfer select{margin-top:12px;font-size:13px;padding:9px 10px;}
+    .pricebox{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;align-items:center;gap:12px;color:var(--muted);font-size:14px;margin-top:18px;}
+    .pricebox.has-price{color:var(--ink);}
+    .pricebox .amt{font-size:22px;font-weight:800;}
+    .ico{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--muted);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-style:italic;flex:0 0 auto;}
+    .docs-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:22px;}
+    .docs-head .lab{font-size:13px;font-weight:700;}
+    .docs-head .lab .muted{font-weight:500;}
+    .upload-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;}
+    .uploads{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
+    .uploads .row{display:flex;justify-content:space-between;align-items:center;font-size:13px;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:9px 12px;}
+    .muted{color:var(--muted);}
+    .sub-note{font-size:12px;color:var(--muted);margin-top:8px;}
+    .submit-row{display:flex;justify-content:flex-end;margin-top:22px;}
+    .btn-submit{background:var(--blue);color:#fff;border:none;border-radius:12px;padding:13px 24px;font-weight:800;font-size:15px;cursor:pointer;}
+    .btn-submit:disabled{background:var(--blue-dim);cursor:not-allowed;}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Order a deed with 50deeds</h1>
-    <p class="sub">
-      Pre-filled from Clio matter <strong><%= d.matterReference.value || '—' %></strong>.
-      Fields marked <span class="tag clio">from Clio</span> came from the matter;
-      <span class="tag confirm">confirm</span> need your input;
-      <span class="tag auto">auto-filled</span> populate from the county record once you confirm the property address.
-    </p>
+    <div class="top">
+      <a class="back" href="#" onclick="history.back();return false;" aria-label="Back">&larr;</a>
+      <h1>New Order</h1>
+    </div>
 
     <form id="orderForm" method="POST" action="/order/<%= draftId %>/submit">
       <div class="card">
-        <h2>Parties</h2>
+        <div class="card-title">Order Details</div>
 
-        <label>Grantor name(s)
-          <%- d.grantorName.source === 'clio' ? '<span class="tag clio">from Clio</span>' : '<span class="tag confirm">confirm</span>' %>
-        </label>
-        <input name="grantorName" value="<%= d.grantorName.value %>" required />
-
-        <label>Grantor mailing address
-          <%- d.grantorAddress.source === 'clio' ? '<span class="tag clio">from Clio</span>' : '<span class="tag confirm">confirm</span>' %>
-        </label>
-        <textarea name="grantorAddress" required><%= d.grantorAddress.value %></textarea>
-
-        <label>Grantee name(s) <span class="tag confirm">confirm</span></label>
-        <% if (d.granteeCandidates && d.granteeCandidates.length) { %>
-          <select id="granteePicker">
-            <option value="">— pick from matter contacts or type below —</option>
-            <% d.granteeCandidates.forEach(function(g){ %>
-              <option value="<%= g.name %>" <%= g.redacted ? 'disabled' : '' %>>
-                <%= g.name || '(unnamed)' %><%= g.relationship ? ' — ' + g.relationship : '' %><%= g.redacted ? ' (no permission)' : '' %>
+        <label>Type of Transfers</label>
+        <div class="transfer">
+          <div class="line">
+            <span>From:</span> <span class="chip" id="fromChip">&mdash;</span>
+            <span class="arrow">&rarr;</span>
+            <span>To:</span> <span class="chip" id="toChip">&mdash;</span>
+          </div>
+          <div class="desc" id="transferDesc"></div>
+          <select name="deedType" id="deedType" required>
+            <% deedTypes.forEach(function(t){ %>
+              <option value="<%= t.value %>" <%= selectedDeedType === t.value ? 'selected' : '' %>>
+                <%= t.transfer %><%= (/reportable/i.test(t.value) && !/non-reportable/i.test(t.value)) ? ' — FinCEN reportable' : '' %>
               </option>
             <% }) %>
           </select>
-          <% if (d.granteeCandidates.some(function(g){return g.redacted})) { %>
-            <div class="redacted">Some related contacts are hidden because you lack permission in Clio. Type the grantee manually if needed.</div>
-          <% } %>
-        <% } %>
-        <input name="granteeName" id="granteeName" value="<%= d.granteeName.value %>" placeholder="Grantee name(s)" style="margin-top:8px" required />
-      </div>
-
-      <div class="card">
-        <h2>Property</h2>
-
-        <label>Property street address
-          <%- d.propertyAddress.source && d.propertyAddress.source.indexOf('clio') === 0 ? '<span class="tag clio">from Clio</span>' : '<span class="tag confirm">confirm</span>' %>
-        </label>
-        <input name="propertyAddress" id="propertyAddress" value="<%= d.propertyAddress.value %>" placeholder="123 Main St, City" required />
-        <div class="row">
-          <div>
-            <label>County <span class="tag confirm">confirm</span></label>
-            <input name="county" id="county" value="<%= d.county.value %>" />
-          </div>
-          <div>
-            <label>State <%- d.state.source === 'derived' ? '<span class="tag clio">derived</span>' : '<span class="tag confirm">confirm</span>' %></label>
-            <input name="state" id="state" value="<%= d.state.value %>" maxlength="2" required />
-          </div>
         </div>
 
-        <button type="button" class="btn-secondary" id="lookupBtn" style="margin-top:12px">
-          Confirm address → look up county record
-        </button>
-        <div class="lookup-status" id="lookupStatus"></div>
+        <label>Property Address</label>
+        <input type="text" name="propertyAddress" id="propertyAddress" value="<%= d.propertyAddress.value %>" placeholder="Enter the property address..." autocomplete="off" required />
 
-        <label>APN / Parcel number <span class="tag auto">auto-filled</span></label>
-        <input name="apn" id="apn" value="<%= d.apn.value %>" placeholder="Populated from county record" />
+        <label>Homeowner Name</label>
+        <input type="text" name="grantorName" id="grantorName" value="<%= d.grantorName.value %>" placeholder="As shown on last recorded deed" required />
 
-        <label>Legal description <span class="tag auto">auto-filled</span></label>
-        <textarea name="legalDescription" id="legalDescription" placeholder="Populated from county record"><%= d.legalDescription.value %></textarea>
+        <label>New Owner Name <span class="muted" id="toLabel"></span></label>
+        <input type="text" name="granteeName" id="granteeName" value="<%= d.granteeName.value %>" placeholder="Name of the trust, individual, or company receiving title" required />
 
-        <label>Prior deed / vesting reference <span class="tag auto">auto-filled</span></label>
-        <input name="priorDeedReference" id="priorDeedReference" value="<%= d.priorDeedReference.value %>" placeholder="Populated from county record" />
+        <div class="pricebox" id="priceBox">
+          <span class="ico">i</span>
+          <span id="priceText">Enter valid property address to calculate the price.</span>
+        </div>
+
+        <label>Additional Instructions (Optional)</label>
+        <textarea name="additionalInstructions" placeholder="Enter any special requests or notes here..."><%= d.additionalInstructions ? d.additionalInstructions.value : '' %></textarea>
+
+        <div class="docs-head">
+          <div class="lab">Supporting Documents <span class="muted">(Upload Homeowner ID, last recorded deed and/or Certificate of Trust)</span></div>
+          <label class="upload-btn">&uarr; Upload Files
+            <input type="file" id="fileInput" multiple style="display:none" />
+          </label>
+        </div>
+        <div class="uploads" id="uploads"></div>
+        <div class="sub-note" id="uploadStatus"></div>
       </div>
 
-      <div class="card">
-        <h2>Deed</h2>
-        <label>Deed type <span class="tag confirm">confirm</span></label>
-        <select name="deedType" id="deedType" required>
-          <option value="">— select —</option>
-          <% deedTypes.forEach(function(t){ %>
-            <option value="<%= t.value %>" <%= d.deedType.value === t.value ? 'selected' : '' %>><%= t.label %></option>
-          <% }) %>
-        </select>
-        <div class="hint">Deed type sets the FinCEN reportability and price. For estate work the first options (trust funding, transfer on death) are most common.</div>
+      <!-- Required by the Enterprise order but derived/pre-filled, not shown as primary fields -->
+      <input type="hidden" name="contactEmail" id="contactEmail" value="<%= d.contactEmail.value %>" />
+      <input type="hidden" name="county" id="county" value="<%= d.county.value %>" />
+      <input type="hidden" name="state" id="state" value="<%= d.state.value %>" />
+      <input type="hidden" name="apn" id="apn" value="<%= d.apn.value %>" />
+      <input type="hidden" name="legalDescription" id="legalDescription" value="<%= d.legalDescription.value %>" />
+      <input type="hidden" name="priorDeedReference" id="priorDeedReference" value="<%= d.priorDeedReference.value %>" />
+      <input type="hidden" name="matterReference" value="<%= d.matterReference.value %>" />
 
-        <label>Contact email <%- d.contactEmail.source === 'clio' ? '<span class="tag clio">from Clio</span>' : '<span class="tag confirm">confirm</span>' %></label>
-        <input type="email" name="contactEmail" id="contactEmail" value="<%= d.contactEmail.value %>" placeholder="attorney@firm.com" required />
-
-        <label>Additional instructions <span class="tag confirm">optional</span></label>
-        <textarea name="additionalInstructions" placeholder="Anything fulfillment should know"><%= d.additionalInstructions ? d.additionalInstructions.value : '' %></textarea>
-
-        <label>Matter reference <span class="tag clio">from Clio</span></label>
-        <input name="matterReference" value="<%= d.matterReference.value %>" readonly />
+      <div class="submit-row">
+        <button type="submit" class="btn-submit" id="submitBtn" disabled>Submit Order &#9658;</button>
       </div>
-
-      <div class="card" style="display:flex;align-items:center;justify-content:space-between">
-        <div>Deed order total</div>
-        <div class="price" id="priceDisplay"><%= priceDisplay %></div>
-      </div>
-
-      <button type="submit" class="btn-primary">Continue to secure payment →</button>
-      <p class="footer-note">You'll complete payment via Stripe. Your order is recorded against Clio matter <%= d.matterReference.value || '' %>.</p>
+      <p class="sub-note" style="text-align:right">Secure payment via Stripe · recorded against Clio matter <%= d.matterReference.value || '' %>.</p>
     </form>
   </div>
 
   <script>
     const $ = (id) => document.getElementById(id);
+    const DEED = <%- JSON.stringify(deedMeta) %>;
 
-    // Grantee picker -> name field
-    if ($('granteePicker')) {
-      $('granteePicker').addEventListener('change', (e) => {
-        if (e.target.value) $('granteeName').value = e.target.value;
-      });
+    function refreshTransfer() {
+      const m = DEED[$('deedType').value] || { from: '—', to: '—', transfer: '' };
+      $('fromChip').textContent = m.from;
+      $('toChip').textContent = m.to;
+      $('transferDesc').textContent = m.transfer;
+      $('toLabel').textContent = m.to ? '(the ' + m.to + ')' : '';
     }
 
-    // County record lookup (the differentiator)
-    $('lookupBtn').addEventListener('click', async () => {
+    function setPrice(html, isPrice) {
+      $('priceText').innerHTML = html;
+      $('priceBox').classList.toggle('has-price', !!isPrice);
+    }
+
+    function validate() {
+      const ok = $('deedType').value && $('propertyAddress').value.trim()
+        && $('grantorName').value.trim() && $('granteeName').value.trim();
+      $('submitBtn').disabled = !ok;
+    }
+
+    async function lookupAndPrice() {
       const address = $('propertyAddress').value.trim();
-      if (!address) { $('lookupStatus').textContent = 'Enter a property address first.'; return; }
-      $('lookupStatus').textContent = 'Looking up county record…';
-      $('lookupBtn').disabled = true;
+      if (!address) { setPrice('Enter valid property address to calculate the price.', false); return; }
+      setPrice('Calculating price…', false);
       try {
-        const res = await fetch('/order/<%= draftId %>/county-lookup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const r = await fetch('/order/<%= draftId %>/county-lookup', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ address, state: $('state').value, county: $('county').value }),
         });
-        const data = await res.json();
-        if (!res.ok || !data.found) {
-          $('lookupStatus').innerHTML = '<span style="color:#b26a00">No county record found automatically — enter APN / legal description manually.</span>';
-        } else {
-          $('apn').value = data.apn || '';
-          $('legalDescription').value = data.legalDescription || '';
-          $('priorDeedReference').value = data.priorDeedReference || '';
-          if (data.county) $('county').value = data.county;
-          if (data.state) $('state').value = data.state;
-          $('lookupStatus').innerHTML = '<span style="color:#1a7f4b">✓ County record found — APN, legal description, and prior deed populated. Please verify.</span>';
+        const d = await r.json();
+        if (d.found) {
+          $('apn').value = d.apn || '';
+          $('legalDescription').value = d.legalDescription || '';
+          $('priorDeedReference').value = d.priorDeedReference || '';
+          if (d.county) $('county').value = d.county;
+          if (d.state) $('state').value = d.state;
         }
-      } catch (e) {
-        $('lookupStatus').innerHTML = '<span style="color:#b00">Lookup failed — enter details manually.</span>';
-      } finally {
-        $('lookupBtn').disabled = false;
-        updatePrice();
-      }
-    });
+      } catch (e) {}
+      await updatePrice();
+    }
 
-    // Live price from the Enterprise pricing endpoint (per state + county + deed type).
     async function updatePrice() {
       const state = $('state').value.trim().toUpperCase();
-      if (state.length !== 2) return;
-      const params = new URLSearchParams({
-        state,
-        county: $('county').value.trim(),
-        deedType: $('deedType').value,
-      });
+      if (state.length !== 2) { setPrice('Enter valid property address to calculate the price.', false); return; }
       try {
-        const res = await fetch('/order/price?' + params.toString());
-        const data = await res.json();
-        if (data.display) $('priceDisplay').textContent = data.display;
-      } catch {}
+        const p = new URLSearchParams({ state, county: $('county').value.trim(), deedType: $('deedType').value });
+        const r = await fetch('/order/price?' + p.toString());
+        const d = await r.json();
+        setPrice('<span class="amt">' + (d.display || '—') + '</span>', true);
+      } catch (e) {
+        setPrice('Could not calculate price automatically — we’ll confirm before payment.', false);
+      }
     }
-    $('state').addEventListener('change', updatePrice);
-    $('county').addEventListener('change', updatePrice);
-    $('deedType').addEventListener('change', updatePrice);
+
+    // File upload: read as base64, POST JSON, list the result.
+    $('fileInput').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      for (const f of files) {
+        $('uploadStatus').textContent = 'Uploading ' + f.name + '…';
+        try {
+          const b64 = await new Promise((res, rej) => {
+            const fr = new FileReader();
+            fr.onload = () => res(String(fr.result).split(',')[1]);
+            fr.onerror = rej;
+            fr.readAsDataURL(f);
+          });
+          const r = await fetch('/order/<%= draftId %>/upload', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ file_name: f.name, mime: f.type, data_base64: b64 }),
+          });
+          const d = await r.json();
+          if (r.ok) {
+            const row = document.createElement('div');
+            row.className = 'row';
+            row.innerHTML = '<span>📄 ' + d.file_name + '</span><span class="muted">'
+              + Math.max(1, Math.round(d.file_size / 1024)) + ' KB</span>';
+            $('uploads').appendChild(row);
+            $('uploadStatus').textContent = '';
+          } else {
+            $('uploadStatus').textContent = d.error || 'Upload failed.';
+          }
+        } catch (err) {
+          $('uploadStatus').textContent = 'Upload failed for ' + f.name + '.';
+        }
+      }
+      e.target.value = '';
+    });
+
+    $('deedType').addEventListener('change', () => { refreshTransfer(); updatePrice(); validate(); });
+    ['propertyAddress', 'grantorName', 'granteeName'].forEach((id) => $(id).addEventListener('input', validate));
+    $('propertyAddress').addEventListener('blur', lookupAndPrice);
+
+    refreshTransfer();
+    validate();
+    if ($('propertyAddress').value.trim()) lookupAndPrice();
   </script>
 </body>
 </html>

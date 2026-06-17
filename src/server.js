@@ -31,7 +31,8 @@ app.use((req, res, next) => {
 // Stripe webhook needs the raw body for signature verification — mount BEFORE json parser.
 app.use('/stripe/webhook', express.raw({ type: 'application/json' }));
 
-app.use(express.json());
+// Limit raised to accommodate base64 supporting-document uploads on the order form.
+app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(config.cookieSecret));
 

@@ -1,6 +1,7 @@
 import express from 'express';
 import { config } from '../config.js';
 import { getDraft, updateDraftData, setDraftStripeSession } from '../db/drafts.js';
+import { saveFile, getFile } from '../db/files.js';
 import { lookupProperty } from '../services/countyLookup.js';
 import { resolvePrice, dollars } from '../services/priceTable.js';
 import { isValidDeedType, DEED_TYPES } from '../services/deedTypes.js';
@@ -23,6 +24,21 @@ orderRouter.get('/price', async (req, res, next) => {
   }
 });
 
+// Serve an uploaded supporting document by capability URL. This URL is passed to the
+// Enterprise order as the attachment file_url so the 50deeds backend can fetch it.
+// Defined before '/:draftId' so it isn't shadowed by the draft route.
+orderRouter.get('/files/:fileId', async (req, res, next) => {
+  try {
+    const f = await getFile(req.params.fileId);
+    if (!f) return res.status(404).send('Not found');
+    res.setHeader('Content-Type', f.mime || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(f.file_name)}"`);
+    res.send(f.bytes);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Render the pre-filled order form for a draft.
 orderRouter.get('/:draftId', async (req, res, next) => {
   try {
@@ -33,7 +49,19 @@ orderRouter.get('/:draftId', async (req, res, next) => {
       county: draft.data.county?.value,
       deedType: draft.data.deedType?.value,
     });
-    res.render('orderForm', { draftId: draft.id, d: draft.data, priceDisplay: price.display, deedTypes: DEED_TYPES });
+    const selectedDeedType =
+      draft.data.deedType?.value || (DEED_TYPES.find((t) => t.estate) || DEED_TYPES[0]).value;
+    const deedMeta = Object.fromEntries(
+      DEED_TYPES.map((t) => [t.value, { from: t.from, to: t.to, transfer: t.transfer }]),
+    );
+    res.render('orderForm', {
+      draftId: draft.id,
+      d: draft.data,
+      priceDisplay: price.display,
+      deedTypes: DEED_TYPES,
+      selectedDeedType,
+      deedMeta,
+    });
   } catch (err) {
     next(err);
   }
@@ -67,6 +95,34 @@ orderRouter.post('/:draftId/county-lookup', async (req, res, next) => {
     res.json(result);
   } catch (err) {
     if (err.status) return res.status(502).json({ error: 'county lookup unavailable', detail: err.message });
+    next(err);
+  }
+});
+
+// Upload a supporting document (base64 JSON). Stored in Postgres and tracked on the
+// draft as an attachment { file_url, file_name, file_size } for the Enterprise order.
+orderRouter.post('/:draftId/upload', async (req, res, next) => {
+  try {
+    const draft = await getDraft(req.params.draftId);
+    if (!draft) return res.status(404).json({ error: 'draft not found' });
+
+    const { file_name, mime, data_base64 } = req.body || {};
+    if (!file_name || !data_base64) return res.status(400).json({ error: 'file_name and data_base64 required' });
+
+    const bytes = Buffer.from(String(data_base64), 'base64');
+    if (bytes.length === 0) return res.status(400).json({ error: 'empty file' });
+    if (bytes.length > 15 * 1024 * 1024) return res.status(413).json({ error: 'file too large (max 15MB)' });
+
+    const saved = await saveFile({ draftId: draft.id, fileName: String(file_name).slice(0, 200), mime, bytes });
+    const fileUrl = `${config.appBaseUrl}/order/files/${saved.id}`;
+
+    const data = draft.data;
+    data.attachments = Array.isArray(data.attachments) ? data.attachments : [];
+    data.attachments.push({ file_url: fileUrl, file_name: saved.fileName, file_size: saved.sizeBytes });
+    await updateDraftData(draft.id, data);
+
+    res.json({ id: saved.id, file_name: saved.fileName, file_size: saved.sizeBytes, file_url: fileUrl });
+  } catch (err) {
     next(err);
   }
 });

@@ -24,6 +24,9 @@ export async function submitPaidOrder(draft, { stripeSessionId, amountCents } = 
   const extra = val('additionalInstructions');
   if (extra) traceLines.push(`Notes: ${extra}`);
 
+  // Supporting documents uploaded on the form (homeowner ID, prior deed, cert of trust).
+  const attachments = Array.isArray(data.attachments) ? data.attachments : [];
+
   const fields = {
     property_address: val('propertyAddress'),
     grantor_name: val('grantorName'),
@@ -43,6 +46,7 @@ export async function submitPaidOrder(draft, { stripeSessionId, amountCents } = 
     payment_status: 'paid',
     amount_cents: amountCents,
     stripe_session_id: stripeSessionId,
+    ...(attachments.length ? { attachments } : {}),
     clio_matter_id: draft.clio_matter_id,
     clio_display_number: draft.display_number,
   };

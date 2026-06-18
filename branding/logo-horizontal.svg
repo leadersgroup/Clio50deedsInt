@@ -1,20 +1,22 @@
 <svg width="900" height="200" viewBox="0 0 900 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="50deeds.com for Clio">
   <!-- Flag mark: navy canton + white house + red stripes (on white) -->
-  <rect x="24" y="24" width="78" height="110" rx="8" fill="#16294E"/>
+  <rect x="24" y="22" width="104" height="116" rx="8" fill="#16294E"/>
   <g fill="#ffffff">
-    <path d="M63 44 L92 72 L34 72 Z"/>
-    <rect x="44" y="72" width="38" height="46" rx="2"/>
+    <path d="M76 44 L107 74 L45 74 Z"/>
+    <rect x="55" y="73" width="42" height="50" rx="2"/>
   </g>
-  <rect x="57" y="93" width="12" height="25" rx="1.5" fill="#16294E"/>
+  <rect x="69" y="96" width="14" height="27" rx="1.5" fill="#16294E"/>
 
-  <rect x="112" y="24" width="120" height="20" rx="3" fill="#D0202F"/>
-  <rect x="112" y="54" width="120" height="20" rx="3" fill="#D0202F"/>
-  <rect x="112" y="84" width="120" height="20" rx="3" fill="#D0202F"/>
-  <rect x="112" y="114" width="120" height="20" rx="3" fill="#D0202F"/>
+  <!-- 3 thick stripes -->
+  <g fill="#D0202F">
+    <rect x="138" y="22" width="128" height="30" rx="3"/>
+    <rect x="138" y="65" width="128" height="30" rx="3"/>
+    <rect x="138" y="108" width="128" height="30" rx="3"/>
+  </g>
 
   <!-- Wordmark -->
-  <text x="270" y="112" font-family="'Arial Narrow', 'Inter', system-ui, -apple-system, sans-serif" font-size="68" font-weight="800" letter-spacing="-1">
+  <text x="300" y="112" font-family="'Arial Narrow', 'Inter', system-ui, -apple-system, sans-serif" font-size="68" font-weight="800" letter-spacing="-1">
     <tspan fill="#D0202F">5</tspan><tspan fill="#16294E">0DEEDS.COM</tspan>
   </text>
-  <text x="272" y="150" font-family="'Arial Narrow', 'Inter', system-ui, -apple-system, sans-serif" font-size="23" font-weight="700" letter-spacing="7" fill="#16294E">FOR CLIO</text>
+  <text x="302" y="150" font-family="'Arial Narrow', 'Inter', system-ui, -apple-system, sans-serif" font-size="23" font-weight="700" letter-spacing="7" fill="#16294E">FOR CLIO</text>
 </svg>

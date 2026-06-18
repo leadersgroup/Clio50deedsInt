@@ -53,6 +53,11 @@ export const config = {
       'https://50-deedscom-enterprise-db0653f4.base44.app/api/functions/enterpriseApi',
     ),
     apiKey: optional('ENTERPRISE_API_KEY'),
+    // Multipart file-upload endpoint (separate Base44 function, standard Bearer auth).
+    uploadUrl: optional(
+      'ENTERPRISE_UPLOAD_URL',
+      'https://50-deedscom-enterprise-db0653f4.base44.app/api/functions/uploadDocument',
+    ),
     // Shared secret in the webhook URL path (the Enterprise webhook has no signature).
     // Two-way order-status sync is enabled only when this is set.
     webhookSecret: optional('ENTERPRISE_WEBHOOK_SECRET'),

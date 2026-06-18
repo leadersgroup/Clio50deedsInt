@@ -101,6 +101,30 @@ export async function registerWebhook(url) {
   return data.webhook || data;
 }
 
+// Upload a file to 50deeds storage via the multipart uploadDocument endpoint
+// (separate Base44 function, standard Bearer auth). Returns { file_url, file_name,
+// file_size } — file_url is a public, downloadable URL hosted by 50deeds.
+export async function uploadDocument(bytes, fileName, mime) {
+  if (config.enterprise.mock) {
+    return { file_url: `mock://uploaded/${encodeURIComponent(fileName)}`, file_name: fileName, file_size: bytes.length };
+  }
+  const form = new FormData();
+  form.append('file', new Blob([bytes], { type: mime || 'application/octet-stream' }), fileName);
+  const res = await fetch(config.enterprise.uploadUrl, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${config.enterprise.apiKey}` },
+    body: form,
+  });
+  if (!res.ok) {
+    const text = await safeText(res);
+    const err = new Error(`uploadDocument failed (${res.status}): ${text}`);
+    err.status = res.status;
+    throw err;
+  }
+  const data = await res.json();
+  return { file_url: data.file_url, file_name: data.file_name || fileName, file_size: data.file_size ?? bytes.length };
+}
+
 // ── mocks ────────────────────────────────────────────────────────────────────
 
 function mockResponse(path, method, fields) {

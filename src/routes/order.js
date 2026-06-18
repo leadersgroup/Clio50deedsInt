@@ -2,7 +2,7 @@ import express from 'express';
 import { config } from '../config.js';
 import { getDraft, updateDraftData, setDraftStripeSession } from '../db/drafts.js';
 import { saveFile, getFile } from '../db/files.js';
-import { addOrderAttachment, getOrder } from '../services/enterpriseApi.js';
+import { addOrderAttachment, getOrder, uploadDocument } from '../services/enterpriseApi.js';
 import { buildOrderList } from '../services/manageView.js';
 import { lookupProperty } from '../services/countyLookup.js';
 import { resolvePrice, dollars } from '../services/priceTable.js';
@@ -109,29 +109,38 @@ orderRouter.post('/:draftId/upload', async (req, res, next) => {
     const bytes = Buffer.from(String(data_base64), 'base64');
     if (bytes.length === 0) return res.status(400).json({ error: 'empty file' });
     if (bytes.length > 15 * 1024 * 1024) return res.status(413).json({ error: 'file too large (max 15MB)' });
+    const fileName = String(file_name).slice(0, 200);
 
-    const saved = await saveFile({ draftId: draft.id, fileName: String(file_name).slice(0, 200), mime, bytes });
-    const fileUrl = `${config.appBaseUrl}/order/files/${saved.id}`;
+    // Upload to 50deeds storage (returns a public file_url). Fall back to hosting it
+    // ourselves only if 50deeds rejects it (e.g. unsupported type) so there's still a URL.
+    let attachment;
+    let attached = false;
+    try {
+      attachment = await uploadDocument(bytes, fileName, mime);
+      attached = true; // the file is now stored at 50deeds
+    } catch (err) {
+      console.error('[order] uploadDocument failed, hosting locally:', err.status || '', err.message);
+      const saved = await saveFile({ draftId: draft.id, fileName, mime, bytes });
+      attachment = { file_url: `${config.appBaseUrl}/order/files/${saved.id}`, file_name: saved.fileName, file_size: saved.sizeBytes };
+    }
 
     const data = draft.data;
     data.attachments = Array.isArray(data.attachments) ? data.attachments : [];
-    data.attachments.push({ file_url: fileUrl, file_name: saved.fileName, file_size: saved.sizeBytes });
+    data.attachments.push(attachment);
     await updateDraftData(draft.id, data);
 
-    // If the order already exists (post-order upload via the "View/manage" action),
-    // forward the document to the Enterprise order. The file is hosted by URL
-    // regardless; `attached` tells the UI whether it actually reached the order.
-    let attached = false;
+    // Pre-order uploads ride along in the POST /orders attachments at creation.
+    // Post-order uploads (the order already exists) try to link to it directly —
+    // best-effort until the Enterprise add-attachment endpoint exists.
     if (draft.order_id) {
       try {
-        await addOrderAttachment(draft.order_id, { file_url: fileUrl, file_name: saved.fileName, file_size: saved.sizeBytes });
-        attached = true;
+        await addOrderAttachment(draft.order_id, attachment);
       } catch (err) {
-        console.error('[order] forward attachment to enterprise order failed:', err.status || '', err.message);
+        console.error('[order] link attachment to existing order failed:', err.status || '', err.message);
       }
     }
 
-    res.json({ id: saved.id, file_name: saved.fileName, file_size: saved.sizeBytes, file_url: fileUrl, attached });
+    res.json({ ...attachment, attached });
   } catch (err) {
     next(err);
   }

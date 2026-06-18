@@ -62,6 +62,11 @@ app.use((req, res) => res.status(404).send('Not found'));
 
 // Error handler — never leak tokens/nonces; log message only.
 app.use((err, _req, res, _next) => {
+  // Body too large (e.g. an oversized base64 upload) — return a clear, parseable error
+  // instead of the generic 500 so the upload UI can show a helpful message.
+  if (err.type === 'entity.too.large' || err.status === 413) {
+    return res.status(413).json({ error: 'File too large (max 14 MB).' });
+  }
   console.error('[error]', err.message);
   res.status(500).send('Something went wrong. Please try again from the Clio matter.');
 });

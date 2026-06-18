@@ -98,6 +98,10 @@
         const list = document.getElementById('uploads-' + draft);
         const status = document.getElementById('status-' + draft);
         for (const f of Array.from(e.target.files || [])) {
+          if (f.size > 14 * 1024 * 1024) {
+            status.textContent = f.name + ' is too large (max 14 MB).';
+            continue;
+          }
           status.textContent = 'Uploading ' + f.name + '…';
           try {
             const b64 = await new Promise((res, rej) => {

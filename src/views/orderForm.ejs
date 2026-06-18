@@ -300,6 +300,10 @@
     $('fileInput').addEventListener('change', async (e) => {
       const files = Array.from(e.target.files || []);
       for (const f of files) {
+        if (f.size > 14 * 1024 * 1024) {
+          $('uploadStatus').textContent = f.name + ' is too large (max 14 MB).';
+          continue;
+        }
         $('uploadStatus').textContent = 'Uploading ' + f.name + '…';
         try {
           const b64 = await new Promise((res, rej) => {

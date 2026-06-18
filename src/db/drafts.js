@@ -71,6 +71,19 @@ export async function purgeAbandonedDrafts() {
   return rowCount;
 }
 
+// Atomically claim a draft for finalize: transition 'draft' -> 'submitting' in a
+// single statement. Only the caller that performs the transition gets true; concurrent
+// callers (the Stripe webhook + the success-page reconciliation, or a double page load)
+// get false and skip — so the 50deeds order is created at most once.
+export async function claimDraftForFinalize(id) {
+  const { rowCount } = await query(
+    `UPDATE deed_order_drafts SET status = 'submitting', updated_at = now()
+     WHERE id = $1 AND status = 'draft' AND order_id IS NULL`,
+    [id],
+  );
+  return rowCount === 1;
+}
+
 export async function markDraft(id, { status, orderId }) {
   await query(
     `UPDATE deed_order_drafts SET status = $2, order_id = COALESCE($3, order_id), updated_at = now() WHERE id = $1`,

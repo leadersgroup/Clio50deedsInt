@@ -1,7 +1,7 @@
 import express from 'express';
 import { config } from '../config.js';
 import { stripe } from '../stripe/client.js';
-import { getDraftByStripeSession, getDraft, markDraft, updateDraftData } from '../db/drafts.js';
+import { getDraftByStripeSession, getDraft, markDraft, updateDraftData, claimDraftForFinalize } from '../db/drafts.js';
 import { submitPaidOrder } from '../services/orderSystem.js';
 import { postMatterNote } from '../clio/notes.js';
 
@@ -20,8 +20,14 @@ stripeRouter.post('/webhook', async (req, res) => {
       console.error('[stripe] webhook signature verification failed', err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
+  } else if (config.isProd) {
+    // Never trust an unsigned webhook in production — a forged checkout.session.completed
+    // could create an unpaid order. Require STRIPE_WEBHOOK_SECRET before enabling the
+    // webhook in Stripe; until then the success-page reconciliation finalizes orders.
+    console.error('[stripe] STRIPE_WEBHOOK_SECRET not set — rejecting unsigned webhook in production');
+    return res.status(503).send('Webhook not configured');
   } else if (Buffer.isBuffer(req.body)) {
-    // No secret configured (local/dev) — parse the raw body so the handler still works.
+    // Local/dev only — parse the raw body so the handler still works without a secret.
     try {
       event = JSON.parse(req.body.toString('utf8'));
     } catch {
@@ -56,10 +62,25 @@ export async function finalizePaidOrder(session) {
   }
   if (draft.status === 'paid' || draft.order_id) return; // already submitted
 
-  const order = await submitPaidOrder(draft, {
-    stripeSessionId: session.id,
-    amountCents: session.amount_total,
-  });
+  // Atomically claim the draft so the webhook + success-page reconciliation (or a
+  // double page load) can't both submit. Only the winner proceeds.
+  const claimed = await claimDraftForFinalize(draft.id);
+  if (!claimed) {
+    console.log('[stripe] finalize already in progress/done for draft', draft.id);
+    return;
+  }
+
+  let order;
+  try {
+    order = await submitPaidOrder(draft, {
+      stripeSessionId: session.id,
+      amountCents: session.amount_total,
+    });
+  } catch (err) {
+    // Release the claim so a retry (webhook re-delivery / page reload) can try again.
+    await markDraft(draft.id, { status: 'draft' }).catch(() => {});
+    throw err;
+  }
 
   // Record the Enterprise order id + custom order id on the draft for the success page.
   const data = draft.data || {};

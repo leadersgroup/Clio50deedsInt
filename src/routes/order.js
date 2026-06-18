@@ -110,7 +110,7 @@ orderRouter.post('/:draftId/upload', async (req, res, next) => {
 
     const bytes = Buffer.from(String(data_base64), 'base64');
     if (bytes.length === 0) return res.status(400).json({ error: 'empty file' });
-    if (bytes.length > 15 * 1024 * 1024) return res.status(413).json({ error: 'file too large (max 15MB)' });
+    if (bytes.length > 14 * 1024 * 1024) return res.status(413).json({ error: 'File too large (max 14 MB).' });
     const fileName = String(file_name).slice(0, 200);
 
     // Upload to 50deeds storage (returns a public file_url). Fall back to hosting it

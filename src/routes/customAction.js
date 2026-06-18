@@ -1,7 +1,8 @@
 import express from 'express';
 import { fetchMatter, fetchContact, fetchMatterRelationships } from '../clio/matters.js';
 import { mapMatterToOrder } from '../services/fieldMapper.js';
-import { createDraft } from '../db/drafts.js';
+import { createDraft, getDraftsByMatterId } from '../db/drafts.js';
+import { getOrder } from '../services/enterpriseApi.js';
 
 export const customActionRouter = express.Router();
 
@@ -97,6 +98,67 @@ customActionRouter.get('/custom-action', async (req, res, next) => {
     });
 
     res.redirect(`/order/${draftId}`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Second custom action: "View/manage 50deeds order". Same untrusted-GET handling —
+// validate the nonce by re-fetching the matter, then show the matter's 50deeds
+// order(s) with live status and a place to upload documents back to 50deeds.
+customActionRouter.get('/manage-order', async (req, res, next) => {
+  try {
+    const subjectUrl = String(req.query.subject_url || '');
+    const nonce = String(req.query.custom_action_nonce || '');
+    const clioUserId = Number(req.query.user_id);
+
+    if (!subjectUrl || !nonce || !clioUserId) {
+      return res.status(400).send(page('Missing parameters', 'This link is missing required Clio parameters.'));
+    }
+    if (!/^\/api\/v4\/matters\/\d+$/.test(subjectUrl)) {
+      return res.status(400).send(page('Unsupported', 'This action only works from a Clio matter.'));
+    }
+
+    let matter;
+    try {
+      matter = await fetchMatter(clioUserId, subjectUrl, nonce);
+    } catch (err) {
+      if (err.code === 'NO_TOKEN') {
+        return res.redirect(`/clio/install?return=${encodeURIComponent(req.originalUrl)}`);
+      }
+      if (err.status === 403) {
+        return res
+          .status(403)
+          .send(page('Could not verify this request', 'The secure link from Clio was invalid or expired (it lasts 60 seconds). Reopen this from the matter.'));
+      }
+      throw err;
+    }
+
+    const drafts = await getDraftsByMatterId(matter.id);
+    const orders = [];
+    for (const d of drafts) {
+      if (!d.order_id) continue; // only submitted orders
+      const data = d.data || {};
+      const val = (f) => (data[f] && typeof data[f] === 'object' ? data[f].value : data[f]) || '';
+      let live = null;
+      try {
+        live = await getOrder(d.order_id);
+      } catch (err) {
+        console.error('[manage-order] live status fetch failed:', err.status || '', err.message);
+      }
+      orders.push({
+        draftId: d.id,
+        orderId: d.order_id,
+        customOrderId: data.enterpriseCustomOrderId || live?.custom_order_id || '',
+        status: live?.status || d.status || 'Submitted',
+        transfer: val('transferFrom') || val('transferTo') ? `${val('transferFrom') || '?'} → ${val('transferTo') || '?'}` : '',
+        propertyAddress: val('propertyAddress'),
+        total: live && live.total_price != null ? `$${Number(live.total_price).toFixed(2)}` : '',
+        attachments: (Array.isArray(live?.attachments) ? live.attachments : data.attachments) || [],
+      });
+    }
+
+    res.render('manageOrder', { matterRef: matter.display_number || '', orders });
   } catch (err) {
     next(err);
   }

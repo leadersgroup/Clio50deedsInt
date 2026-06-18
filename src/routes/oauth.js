@@ -64,7 +64,7 @@ oauthRouter.get('/callback', async (req, res, next) => {
       .send(
         installSuccessHtml({
           clioUserId,
-          actionRegistered: Boolean(actionResult?.action),
+          actionRegistered: Boolean(actionResult?.actions?.length),
           returnPath: parsed?.return || '/',
         }),
       );

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Your 50deeds order — 50deeds</title>
+  <style>
+    :root{--ink:#1a2b4a;--muted:#6b7a93;--line:#e2e8f2;--blue:#2563eb;--soft:#f7f9fc;--green:#1a7f4b;--amber:#b26a00;}
+    *{box-sizing:border-box;}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:#fafbfd;margin:0;}
+    .wrap{max-width:680px;margin:0 auto;padding:24px 20px 80px;}
+    .top{display:flex;align-items:center;gap:12px;margin:8px 0 6px;}
+    .back{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);text-decoration:none;font-size:18px;}
+    h1{font-size:22px;margin:0;font-weight:800;}
+    .sub{color:var(--muted);font-size:14px;margin:0 0 20px;}
+    .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px;}
+    .row1{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
+    .ordno{font-weight:800;font-size:15px;}
+    code{background:#f1f4f9;padding:2px 6px;border-radius:4px;}
+    .badge{font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px;background:#eaf0fb;color:#2b4a86;white-space:nowrap;}
+    .meta{font-size:14px;color:#3a4a63;padding:3px 0;}
+    .docs-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;border-top:1px solid var(--line);padding-top:14px;}
+    .docs-head .lab{font-size:13px;font-weight:700;}
+    .upload-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;}
+    .uploads{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+    .frow{display:flex;justify-content:space-between;font-size:13px;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:8px 12px;}
+    .sub-note{font-size:12px;color:var(--muted);margin-top:8px;min-height:16px;}
+    .empty{color:var(--muted);font-size:14px;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="back" href="#" onclick="history.back();return false;" aria-label="Back">&larr;</a>
+      <h1>Your 50deeds order</h1>
+    </div>
+    <p class="sub">Clio matter <strong><%= matterRef || '—' %></strong></p>
+
+    <% if (!orders.length) { %>
+      <div class="card"><div class="empty">No 50deeds orders for this matter yet. Use <strong>Order deed transfer with 50deeds</strong> to create one.</div></div>
+    <% } %>
+
+    <% orders.forEach(function(o){ %>
+      <div class="card">
+        <div class="row1">
+          <div class="ordno">Order <code><%= o.customOrderId || o.orderId %></code></div>
+          <span class="badge"><%= o.status %></span>
+        </div>
+        <% if (o.transfer) { %><div class="meta">Transfer: <%= o.transfer %></div><% } %>
+        <% if (o.propertyAddress) { %><div class="meta">Property: <%= o.propertyAddress %></div><% } %>
+        <% if (o.total) { %><div class="meta">Total: <%= o.total %></div><% } %>
+
+        <div class="docs-head">
+          <div class="lab">Documents <span style="font-weight:500;color:var(--muted)">(send signed deed / supporting files to 50deeds)</span></div>
+          <label class="upload-btn">&uarr; Upload to 50deeds
+            <input type="file" class="fileInput" data-draft="<%= o.draftId %>" multiple style="display:none" />
+          </label>
+        </div>
+        <div class="uploads" id="uploads-<%= o.draftId %>">
+          <% (o.attachments || []).forEach(function(a){ %>
+            <div class="frow"><span>📄 <%= a.file_name || a.name || 'document' %></span></div>
+          <% }) %>
+        </div>
+        <div class="sub-note" id="status-<%= o.draftId %>"></div>
+      </div>
+    <% }) %>
+  </div>
+
+  <script>
+    document.querySelectorAll('.fileInput').forEach((inp) => {
+      inp.addEventListener('change', async (e) => {
+        const draft = inp.dataset.draft;
+        const list = document.getElementById('uploads-' + draft);
+        const status = document.getElementById('status-' + draft);
+        for (const f of Array.from(e.target.files || [])) {
+          status.textContent = 'Uploading ' + f.name + '…';
+          try {
+            const b64 = await new Promise((res, rej) => {
+              const fr = new FileReader();
+              fr.onload = () => res(String(fr.result).split(',')[1]);
+              fr.onerror = rej;
+              fr.readAsDataURL(f);
+            });
+            const r = await fetch('/order/' + draft + '/upload', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ file_name: f.name, mime: f.type, data_base64: b64 }),
+            });
+            const d = await r.json();
+            if (r.ok) {
+              const row = document.createElement('div');
+              row.className = 'frow';
+              row.innerHTML = '<span>📄 ' + d.file_name + '</span><span class="muted">sent</span>';
+              list.appendChild(row);
+              status.textContent = '';
+            } else {
+              status.textContent = d.error || 'Upload failed.';
+            }
+          } catch (err) {
+            status.textContent = 'Upload failed for ' + f.name + '.';
+          }
+        }
+        e.target.value = '';
+      });
+    });
+  </script>
+</body>
+</html>

@@ -74,6 +74,19 @@ export async function getOrder(orderId) {
   return data;
 }
 
+// Add a document to an EXISTING order (post-creation upload via the manage action).
+// NOTE: the v3.4 doc only accepts attachments at order creation — this needs a
+// 50deeds endpoint (e.g. POST /orders/{id}/attachments). Until that exists the call
+// will error and callers treat it as best-effort (the file is still hosted by URL).
+export async function addOrderAttachment(orderId, { file_url, file_name, file_size }) {
+  const { data } = await enterpriseRequest(`/orders/${orderId}/attachments`, 'POST', {
+    file_url,
+    file_name,
+    file_size,
+  });
+  return data;
+}
+
 export async function registerWebhook(url) {
   const { data } = await enterpriseRequest('/webhooks/register', 'POST', { url });
   return data.webhook || data;

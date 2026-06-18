@@ -2,6 +2,7 @@ import express from 'express';
 import { config } from '../config.js';
 import { getDraft, updateDraftData, setDraftStripeSession } from '../db/drafts.js';
 import { saveFile, getFile } from '../db/files.js';
+import { addOrderAttachment } from '../services/enterpriseApi.js';
 import { lookupProperty } from '../services/countyLookup.js';
 import { resolvePrice, dollars } from '../services/priceTable.js';
 import { isValidDeedType, deedTypeForParties, TRANSFER_PARTIES } from '../services/deedTypes.js';
@@ -115,6 +116,17 @@ orderRouter.post('/:draftId/upload', async (req, res, next) => {
     data.attachments = Array.isArray(data.attachments) ? data.attachments : [];
     data.attachments.push({ file_url: fileUrl, file_name: saved.fileName, file_size: saved.sizeBytes });
     await updateDraftData(draft.id, data);
+
+    // If the order already exists (post-order upload via the "View/manage" action),
+    // forward the document to the Enterprise order. Best-effort — the file is hosted
+    // by URL regardless, so 50deeds can fetch it even if this endpoint isn't live yet.
+    if (draft.order_id) {
+      try {
+        await addOrderAttachment(draft.order_id, { file_url: fileUrl, file_name: saved.fileName, file_size: saved.sizeBytes });
+      } catch (err) {
+        console.error('[order] forward attachment to enterprise order failed:', err.status || '', err.message);
+      }
+    }
 
     res.json({ id: saved.id, file_name: saved.fileName, file_size: saved.sizeBytes, file_url: fileUrl });
   } catch (err) {

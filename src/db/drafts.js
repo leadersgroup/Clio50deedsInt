@@ -49,6 +49,15 @@ export async function getDraftByOrderId(orderId) {
   return rows[0] || null;
 }
 
+// All drafts for a Clio matter (newest first). Used by the "View/manage" action.
+export async function getDraftsByMatterId(clioMatterId) {
+  const { rows } = await query(
+    `SELECT * FROM deed_order_drafts WHERE clio_matter_id = $1 ORDER BY created_at DESC`,
+    [clioMatterId],
+  );
+  return rows;
+}
+
 export async function markDraft(id, { status, orderId }) {
   await query(
     `UPDATE deed_order_drafts SET status = $2, order_id = COALESCE($3, order_id), updated_at = now() WHERE id = $1`,

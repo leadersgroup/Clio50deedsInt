@@ -11,8 +11,13 @@ export async function submitPaidOrder(draft, { stripeSessionId, amountCents } = 
 
   // Trace back to the Clio matter (the Enterprise API has no dedicated Clio field,
   // so matter identity rides in additional_instructions + custom traceability).
+  const attorney = data.attorney || {};
   const traceLines = [
     `Source: Clio Manage integration`,
+    attorney.name ? `Ordering attorney: ${attorney.name}` : null,
+    attorney.company ? `Firm: ${attorney.company}` : null,
+    attorney.email ? `Attorney email: ${attorney.email}` : null,
+    attorney.phone ? `Attorney phone: ${attorney.phone}` : null,
     val('transferFrom') || val('transferTo')
       ? `Transfer parties: ${val('transferFrom') || '?'} → ${val('transferTo') || '?'}`
       : null,

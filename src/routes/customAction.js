@@ -1,6 +1,6 @@
 import express from 'express';
 import { config } from '../config.js';
-import { fetchMatter, fetchContact, fetchMatterRelationships } from '../clio/matters.js';
+import { fetchMatter, fetchContact, fetchMatterRelationships, fetchUser } from '../clio/matters.js';
 import { mapMatterToOrder } from '../services/fieldMapper.js';
 import { createDraft, getDraftsByMatterId } from '../db/drafts.js';
 import { getOrder } from '../services/enterpriseApi.js';
@@ -89,6 +89,19 @@ customActionRouter.get('/custom-action', async (req, res, next) => {
 
     // 3. Map Clio data into the deed-order shape (with provenance per field).
     const orderData = mapMatterToOrder(matter, relatedContacts);
+
+    // Stamp the ordering attorney's contact onto the order — all orders go through
+    // one shared 50deeds account, so this tells 50deeds who actually placed it.
+    try {
+      const u = await fetchUser(clioUserId, clioUserId);
+      orderData.attorney = {
+        name: u?.name || [u?.first_name, u?.last_name].filter(Boolean).join(' '),
+        email: u?.email || '',
+        phone: u?.phone_number || '',
+      };
+    } catch (err) {
+      console.error('[custom-action] attorney lookup failed:', err.status || '', err.message);
+    }
 
     // 4. Persist a draft and redirect the attorney's browser to the pre-filled form.
     const draftId = await createDraft({

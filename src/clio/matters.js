@@ -55,6 +55,15 @@ export async function fetchMatterRelationships(clioUserId, matterId) {
   return Array.isArray(json.data) ? json.data : [];
 }
 
+// Fetch the ordering attorney's contact details (the Clio user who placed the
+// order). Stamped onto the order so 50deeds knows who ordered, since every order
+// is created through one shared enterprise account.
+const USER_FIELDS = ['id', 'name', 'first_name', 'last_name', 'email', 'phone_number'].join(',');
+export async function fetchUser(clioUserId, userId) {
+  const json = await clioGet(clioUserId, `users/${userId}`, { query: { fields: USER_FIELDS } });
+  return json.data;
+}
+
 // Fetch full detail for a single contact (DOB, full address, etc.).
 // Returns { contact, redacted } — `redacted` true when the user lacks permission
 // and Clio stripped fields (it sets a `redacted` flag on the resource).

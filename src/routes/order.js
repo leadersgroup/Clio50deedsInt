@@ -3,7 +3,7 @@ import { config } from '../config.js';
 import { getDraft, updateDraftData, setDraftStripeSession } from '../db/drafts.js';
 import { saveFile, getFile } from '../db/files.js';
 import { addOrderAttachment, getOrder, uploadDocument } from '../services/enterpriseApi.js';
-import { buildOrderList } from '../services/manageView.js';
+import { buildOrderList, mergeAttachments } from '../services/manageView.js';
 import { lookupProperty } from '../services/countyLookup.js';
 import { resolvePrice, dollars } from '../services/priceTable.js';
 import { isValidDeedType, deedTypeForParties, TRANSFER_PARTIES } from '../services/deedTypes.js';
@@ -116,7 +116,10 @@ orderRouter.post('/:draftId/upload', async (req, res, next) => {
     let attachment;
     let attached = false;
     try {
-      attachment = await uploadDocument(bytes, fileName, mime);
+      attachment = await uploadDocument(bytes, fileName, mime, {
+        orderId: draft.order_id,
+        customOrderId: draft.data?.enterpriseCustomOrderId,
+      });
       attached = true; // the file is now stored at 50deeds
     } catch (err) {
       console.error('[order] uploadDocument failed, hosting locally:', err.status || '', err.message);
@@ -167,7 +170,7 @@ orderRouter.get('/:draftId/status', async (req, res, next) => {
       removed,
       customOrderId: data.enterpriseCustomOrderId || live?.custom_order_id || '',
       total: removed ? '' : live && live.total_price != null ? `$${Number(live.total_price).toFixed(2)}` : '',
-      attachments: removed ? [] : (Array.isArray(live?.attachments) ? live.attachments : data.attachments) || [],
+      attachments: removed ? [] : mergeAttachments(live?.attachments, data.attachments),
     });
   } catch (err) {
     next(err);

@@ -104,12 +104,16 @@ export async function registerWebhook(url) {
 // Upload a file to 50deeds storage via the multipart uploadDocument endpoint
 // (separate Base44 function, standard Bearer auth). Returns { file_url, file_name,
 // file_size } — file_url is a public, downloadable URL hosted by 50deeds.
-export async function uploadDocument(bytes, fileName, mime) {
+export async function uploadDocument(bytes, fileName, mime, { orderId, customOrderId } = {}) {
   if (config.enterprise.mock) {
     return { file_url: `mock://uploaded/${encodeURIComponent(fileName)}`, file_name: fileName, file_size: bytes.length };
   }
   const form = new FormData();
   form.append('file', new Blob([bytes], { type: mime || 'application/octet-stream' }), fileName);
+  // Sent so 50deeds can link the file to the order once uploadDocument honors it
+  // (currently storage-only; harmless until then).
+  if (orderId) form.append('order_id', String(orderId));
+  if (customOrderId) form.append('custom_order_id', String(customOrderId));
   const res = await fetch(config.enterprise.uploadUrl, {
     method: 'POST',
     headers: { Authorization: `Bearer ${config.enterprise.apiKey}` },

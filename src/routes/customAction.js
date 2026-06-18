@@ -1,4 +1,5 @@
 import express from 'express';
+import { config } from '../config.js';
 import { fetchMatter, fetchContact, fetchMatterRelationships } from '../clio/matters.js';
 import { mapMatterToOrder } from '../services/fieldMapper.js';
 import { createDraft, getDraftsByMatterId } from '../db/drafts.js';
@@ -158,7 +159,11 @@ customActionRouter.get('/manage-order', async (req, res, next) => {
       });
     }
 
-    res.render('manageOrder', { matterRef: matter.display_number || '', orders });
+    res.render('manageOrder', {
+      matterRef: matter.display_number || '',
+      matterUrl: `${config.clio.authBase}/nc/#/matters/${matter.id}`,
+      orders,
+    });
   } catch (err) {
     next(err);
   }

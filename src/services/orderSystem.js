@@ -45,6 +45,9 @@ export async function submitPaidOrder(draft, { stripeSessionId, amountCents } = 
     // contact_name is REQUIRED by POST /orders; default to the client/grantor.
     contact_name: val('grantorName') || val('granteeName'),
     contact_email: val('contactEmail'),
+    // Required for NY orders only; sent when collected.
+    ...(val('grantorSsn') ? { grantor_ssn: val('grantorSsn') } : {}),
+    ...(val('granteeSsn') ? { grantee_ssn: val('granteeSsn') } : {}),
     additional_instructions: traceLines.join('\n'),
     // Payment is collected from the attorney via Stripe BEFORE this call, so the
     // order must NOT trigger the enterprise ACH debit. Contract with the 50deeds

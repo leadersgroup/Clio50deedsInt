@@ -19,6 +19,9 @@
     input[type=text],input[type=email],textarea{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink);}
     input::placeholder,textarea::placeholder{color:#9aa7bd;}
     gmp-place-autocomplete{width:100%;display:block;}
+    .pairrow{display:flex;gap:14px;align-items:flex-end;}
+    .pairrow .grow{flex:1;min-width:0;}
+    .pairrow .ssnbox{flex:0 0 150px;}
     textarea{min-height:84px;resize:vertical;}
     .transfer{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
     .transfer .line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--muted);}
@@ -87,11 +90,27 @@
         </div>
         <input type="hidden" name="city" id="city" value="<%= d.city ? d.city.value : '' %>" />
 
-        <label>Homeowner Name</label>
-        <input type="text" name="grantorName" id="grantorName" value="<%= d.grantorName.value %>" placeholder="As shown on last recorded deed" required />
+        <div class="pairrow">
+          <div class="grow">
+            <label>Homeowner Name</label>
+            <input type="text" name="grantorName" id="grantorName" value="<%= d.grantorName.value %>" placeholder="As shown on last recorded deed" required />
+          </div>
+          <div class="ssnbox" id="ssnGrantorRow" style="display:none">
+            <label>SSN <span class="muted">(NY)</span></label>
+            <input type="text" name="grantorSsn" id="grantorSsn" value="<%= d.grantorSsn ? d.grantorSsn.value : '' %>" placeholder="XXX-XX-XXXX" autocomplete="off" inputmode="numeric" />
+          </div>
+        </div>
 
-        <label>New Owner Name <span class="muted" id="toLabel"></span></label>
-        <input type="text" name="granteeName" id="granteeName" value="<%= d.granteeName.value %>" placeholder="Name of the trust, individual, or company receiving title" required />
+        <div class="pairrow">
+          <div class="grow">
+            <label>New Owner Name <span class="muted" id="toLabel"></span></label>
+            <input type="text" name="granteeName" id="granteeName" value="<%= d.granteeName.value %>" placeholder="Name of the trust, individual, or company receiving title" required />
+          </div>
+          <div class="ssnbox" id="ssnGranteeRow" style="display:none">
+            <label>SSN <span class="muted">(NY)</span></label>
+            <input type="text" name="granteeSsn" id="granteeSsn" value="<%= d.granteeSsn ? d.granteeSsn.value : '' %>" placeholder="XXX-XX-XXXX" autocomplete="off" inputmode="numeric" />
+          </div>
+        </div>
 
         <label>Contact email <span class="muted">(for order updates)</span></label>
         <input type="email" name="contactEmail" id="contactEmail" value="<%= d.contactEmail.value %>" placeholder="attorney@firm.com" required />
@@ -201,10 +220,18 @@
       $('priceEmpty').style.display = 'none';
     }
 
+    function isNY() { return $('state').value.trim().toUpperCase() === 'NY'; }
+    function toggleSsn() {
+      const show = isNY() ? '' : 'none';
+      $('ssnGrantorRow').style.display = show;
+      $('ssnGranteeRow').style.display = show;
+    }
     function validate() {
+      const ny = isNY();
       const ok = selFrom && selTo && $('propertyAddress').value.trim()
         && $('grantorName').value.trim() && $('granteeName').value.trim()
-        && $('contactEmail').value.trim();
+        && $('contactEmail').value.trim()
+        && (!ny || ($('grantorSsn').value.trim() && $('granteeSsn').value.trim()));
       $('submitBtn').disabled = !ok;
     }
 
@@ -255,6 +282,8 @@
     }
 
     async function updatePrice() {
+      toggleSsn();
+      validate();
       const state = $('state').value.trim().toUpperCase();
       if (state.length !== 2) { renderPrice(null); return; }
       try {
@@ -301,13 +330,14 @@
       e.target.value = '';
     });
 
-    ['propertyAddress', 'grantorName', 'granteeName', 'contactEmail'].forEach((id) => $(id).addEventListener('input', validate));
+    ['propertyAddress', 'grantorName', 'granteeName', 'contactEmail', 'grantorSsn', 'granteeSsn'].forEach((id) => $(id).addEventListener('input', validate));
     $('propertyAddress').addEventListener('blur', lookupAndPrice);
 
     // Called by the Google Places autocomplete after it sets state/county/city.
     window.onPlaceResolved = function () { lookupAndPrice(); validate(); };
 
     applyTransfer();
+    toggleSsn();
     validate();
     if ($('propertyAddress').value.trim()) lookupAndPrice();
     // First-run: prompt for transfer parties like the native flow.

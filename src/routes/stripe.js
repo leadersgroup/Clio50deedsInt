@@ -63,6 +63,9 @@ export async function finalizePaidOrder(session) {
 
   // Record the Enterprise order id + custom order id on the draft for the success page.
   const data = draft.data || {};
+  // Don't retain SSNs after the order has been submitted to 50deeds.
+  delete data.grantorSsn;
+  delete data.granteeSsn;
   data.enterpriseCustomOrderId = order.customOrderId;
   await updateDraftData(draft.id, data);
   await markDraft(draft.id, { status: 'paid', orderId: order.id });

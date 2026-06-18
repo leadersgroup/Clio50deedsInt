@@ -209,7 +209,7 @@ orderRouter.post('/:draftId/submit', async (req, res, next) => {
     const editable = [
       'grantorName', 'grantorAddress', 'granteeName', 'propertyAddress', 'county', 'state',
       'apn', 'legalDescription', 'priorDeedReference', 'deedType', 'contactEmail', 'additionalInstructions',
-      'transferFrom', 'transferTo', 'city',
+      'transferFrom', 'transferTo', 'city', 'grantorSsn', 'granteeSsn',
     ];
     const data = draft.data;
     for (const f of editable) {
@@ -234,9 +234,12 @@ orderRouter.post('/:draftId/submit', async (req, res, next) => {
       return res.status(400).send(blockPage(`Please add the ${missing.join(', ')} before continuing to payment.`, `/order/${draft.id}`));
     }
     if (state === 'NY') {
-      return res
-        .status(400)
-        .send(blockPage('New York deed orders require the grantor and grantee SSNs, which this integration does not collect yet — please place NY orders directly with 50deeds for now.', `/order/${draft.id}`));
+      const nyMissing = [];
+      if (!String(fval('grantorSsn')).trim()) nyMissing.push('homeowner (grantor) SSN');
+      if (!String(fval('granteeSsn')).trim()) nyMissing.push('new owner (grantee) SSN');
+      if (nyMissing.length) {
+        return res.status(400).send(blockPage(`New York orders require the ${nyMissing.join(' and ')}.`, `/order/${draft.id}`));
+      }
     }
 
     // Resolve the price to charge (Enterprise pricing, per county + deed type).

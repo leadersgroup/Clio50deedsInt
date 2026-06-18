@@ -60,7 +60,7 @@
         <div class="docs-head">
           <div class="lab">Documents <span class="muted">(send signed deed / supporting files to 50deeds)</span></div>
           <label class="upload-btn">&uarr; Upload to 50deeds
-            <input type="file" class="fileInput" data-draft="<%= o.draftId %>" multiple style="display:none" />
+            <input type="file" class="fileInput" data-draft="<%= o.draftId %>" multiple accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.doc,.docx" style="display:none" />
           </label>
         </div>
         <div class="uploads" id="uploads-<%= o.draftId %>">
@@ -102,6 +102,10 @@
             status.textContent = f.name + ' is too large (max 14 MB).';
             continue;
           }
+          if (!['pdf', 'png', 'jpg', 'jpeg', 'tif', 'tiff', 'doc', 'docx'].includes((f.name.split('.').pop() || '').toLowerCase())) {
+            status.textContent = f.name + ': unsupported type. Allowed: PDF, PNG, JPG, TIFF, DOC, DOCX.';
+            continue;
+          }
           status.textContent = 'Uploading ' + f.name + '…';
           try {
             const b64 = await new Promise((res, rej) => {
@@ -119,7 +123,7 @@
               list.insertAdjacentHTML('beforeend', attachHtml({ file_url: d.file_url, file_name: d.file_name, file_size: d.file_size }));
               status.textContent = d.attached
                 ? ''
-                : 'Uploaded and stored, but 50deeds doesn’t yet accept documents on an existing order — it will attach automatically once that endpoint is live.';
+                : 'Uploaded, but couldn’t attach to 50deeds — please try again.';
             } else {
               status.textContent = d.error || 'Upload failed.';
             }

@@ -127,7 +127,7 @@
         <div class="docs-head">
           <div class="lab">Supporting Documents <span class="muted">(Upload Homeowner ID, last recorded deed and/or Certificate of Trust)</span></div>
           <label class="upload-btn">&uarr; Upload Files
-            <input type="file" id="fileInput" multiple style="display:none" />
+            <input type="file" id="fileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.doc,.docx" style="display:none" />
           </label>
         </div>
         <div class="uploads" id="uploads"></div>
@@ -175,6 +175,7 @@
     let selFrom = $('transferFrom').value || '';
     let selTo = $('transferTo').value || '';
     let uploading = false;
+    const ALLOWED_EXT = ['pdf', 'png', 'jpg', 'jpeg', 'tif', 'tiff', 'doc', 'docx'];
 
     function applyTransfer() {
       $('fromChip').textContent = selFrom || '—';
@@ -308,6 +309,10 @@
       for (const f of files) {
         if (f.size > 14 * 1024 * 1024) {
           $('uploadStatus').textContent = f.name + ' is too large (max 14 MB).';
+          continue;
+        }
+        if (!ALLOWED_EXT.includes((f.name.split('.').pop() || '').toLowerCase())) {
+          $('uploadStatus').textContent = f.name + ': unsupported type. Allowed: PDF, PNG, JPG, TIFF, DOC, DOCX.';
           continue;
         }
         $('uploadStatus').textContent = 'Uploading ' + f.name + '…';

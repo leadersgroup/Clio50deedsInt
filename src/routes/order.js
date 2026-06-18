@@ -12,6 +12,20 @@ import { stripe } from '../stripe/client.js';
 
 export const orderRouter = express.Router();
 
+// File types 50deeds' uploadDocument accepts (PDF, PNG, JPG, TIFF, DOC, DOCX). We force
+// the canonical MIME so a file with a missing/odd browser MIME (e.g. a .jpg reported as
+// octet-stream) still passes 50deeds' content-type check.
+const ALLOWED_UPLOAD_MIME = {
+  pdf: 'application/pdf',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  tif: 'image/tiff',
+  tiff: 'image/tiff',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+};
+
 // Live price lookup for the form. Pulls authoritative pricing from the Enterprise
 // /pricing endpoint (per county + deed type), falling back to the static table.
 orderRouter.get('/price', async (req, res, next) => {
@@ -113,12 +127,21 @@ orderRouter.post('/:draftId/upload', async (req, res, next) => {
     if (bytes.length > 14 * 1024 * 1024) return res.status(413).json({ error: 'File too large (max 14 MB).' });
     const fileName = String(file_name).slice(0, 200);
 
+    // 50deeds only accepts certain types; reject others up front (rather than silently
+    // hosting them locally, where they never become real 50deeds documents). Force the
+    // canonical MIME so an odd/empty browser MIME on an allowed type still passes.
+    const ext = (fileName.split('.').pop() || '').toLowerCase();
+    const allowedMime = ALLOWED_UPLOAD_MIME[ext];
+    if (!allowedMime) {
+      return res.status(415).json({ error: 'Unsupported file type. Allowed: PDF, PNG, JPG, TIFF, DOC, DOCX.' });
+    }
+
     // Upload to 50deeds storage (returns a public file_url). Fall back to hosting it
-    // ourselves only if 50deeds rejects it (e.g. unsupported type) so there's still a URL.
+    // ourselves only if 50deeds rejects an allowed-type file transiently, so there's a URL.
     let attachment;
     let attached = false;
     try {
-      attachment = await uploadDocument(bytes, fileName, mime, {
+      attachment = await uploadDocument(bytes, fileName, allowedMime, {
         orderId: draft.order_id,
         customOrderId: draft.data?.enterpriseCustomOrderId,
       });

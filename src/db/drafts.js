@@ -42,6 +42,13 @@ export async function getDraftByStripeSession(stripeSessionId) {
   return rows[0] || null;
 }
 
+// Look up the draft by the 50deeds Enterprise order id (set on finalize). Used to
+// map an inbound order-status webhook back to its Clio matter for two-way sync.
+export async function getDraftByOrderId(orderId) {
+  const { rows } = await query(`SELECT * FROM deed_order_drafts WHERE order_id = $1`, [orderId]);
+  return rows[0] || null;
+}
+
 export async function markDraft(id, { status, orderId }) {
   await query(
     `UPDATE deed_order_drafts SET status = $2, order_id = COALESCE($3, order_id), updated_at = now() WHERE id = $1`,

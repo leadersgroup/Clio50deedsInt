@@ -53,6 +53,9 @@ export const config = {
       'https://50-deedscom-enterprise-db0653f4.base44.app/api/functions/enterpriseApi',
     ),
     apiKey: optional('ENTERPRISE_API_KEY'),
+    // Shared secret in the webhook URL path (the Enterprise webhook has no signature).
+    // Two-way order-status sync is enabled only when this is set.
+    webhookSecret: optional('ENTERPRISE_WEBHOOK_SECRET'),
     // No API key configured -> run in MOCK mode (local dev / tests).
     get mock() {
       return !this.apiKey;

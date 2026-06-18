@@ -8,6 +8,7 @@ import { oauthRouter } from './routes/oauth.js';
 import { customActionRouter } from './routes/customAction.js';
 import { orderRouter } from './routes/order.js';
 import { stripeRouter } from './routes/stripe.js';
+import { enterpriseRouter } from './routes/enterprise.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -53,6 +54,7 @@ app.use('/clio', oauthRouter);
 app.use('/clio', customActionRouter);
 app.use('/order', orderRouter);
 app.use('/stripe', stripeRouter);
+app.use('/enterprise', enterpriseRouter);
 
 // 404
 app.use((req, res) => res.status(404).send('Not found'));

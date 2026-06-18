@@ -106,7 +106,7 @@ export async function uploadDocument(bytes, fileName, mime, { orderId, customOrd
     throw err;
   }
   const data = await res.json();
-  return { file_url: data.file_url, file_name: data.file_name || fileName, file_size: data.file_size ?? bytes.length };
+  return { file_url: data.file_url, file_name: data.file_name || fileName, file_size: data.file_size ?? bytes.length, uploaded_at: data.uploaded_at };
 }
 
 // ── mocks ────────────────────────────────────────────────────────────────────

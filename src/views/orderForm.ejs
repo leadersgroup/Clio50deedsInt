@@ -332,7 +332,8 @@
             const row = document.createElement('div');
             row.className = 'row';
             row.innerHTML = '<span>📄 ' + d.file_name + '</span><span class="muted">'
-              + Math.max(1, Math.round(d.file_size / 1024)) + ' KB</span>';
+              + Math.max(1, Math.round(d.file_size / 1024)) + ' KB'
+              + (d.uploaded_et ? ' · ' + d.uploaded_et : '') + '</span>';
             $('uploads').appendChild(row);
             $('uploadStatus').textContent = '';
           } else {

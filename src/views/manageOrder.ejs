@@ -71,7 +71,8 @@
               <% } else { %>
                 <span>📄 <%= a.file_name || a.name || 'document' %></span>
               <% } %>
-              <% if (a.file_size) { %><span class="muted"><%= Math.max(1, Math.round(a.file_size / 1024)) %> KB</span><% } %>
+              <% var meta = [a.file_size ? Math.max(1, Math.round(a.file_size / 1024)) + ' KB' : '', a.uploaded_et || ''].filter(Boolean).join(' · '); %>
+              <% if (meta) { %><span class="muted"><%= meta %></span><% } %>
             </div>
           <% }) %>
         </div>
@@ -84,11 +85,14 @@
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     function attachHtml(a) {
       const name = esc(a.file_name || a.name || 'document');
-      const size = a.file_size ? '<span class="muted">' + Math.max(1, Math.round(a.file_size / 1024)) + ' KB</span>' : '';
+      const bits = [];
+      if (a.file_size) bits.push(Math.max(1, Math.round(a.file_size / 1024)) + ' KB');
+      if (a.uploaded_et) bits.push(esc(a.uploaded_et));
+      const meta = bits.length ? '<span class="muted">' + bits.join(' · ') + '</span>' : '';
       const label = a.file_url
         ? '<a href="' + esc(a.file_url) + '" target="_blank" rel="noopener">📄 ' + name + '</a>'
         : '<span>📄 ' + name + '</span>';
-      return '<div class="frow">' + label + size + '</div>';
+      return '<div class="frow">' + label + meta + '</div>';
     }
 
     // Upload (post-order) — reuses /order/:id/upload, which forwards to the order.
@@ -120,7 +124,7 @@
             });
             const d = await r.json();
             if (r.ok) {
-              list.insertAdjacentHTML('beforeend', attachHtml({ file_url: d.file_url, file_name: d.file_name, file_size: d.file_size }));
+              list.insertAdjacentHTML('beforeend', attachHtml({ file_url: d.file_url, file_name: d.file_name, file_size: d.file_size, uploaded_et: d.uploaded_et }));
               status.textContent = d.attached
                 ? ''
                 : 'Uploaded, but couldn’t attach to 50deeds — please try again.';

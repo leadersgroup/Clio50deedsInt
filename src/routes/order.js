@@ -3,7 +3,7 @@ import { config } from '../config.js';
 import { getDraft, updateDraftData, setDraftStripeSession } from '../db/drafts.js';
 import { saveFile, getFile } from '../db/files.js';
 import { getOrder, uploadDocument } from '../services/enterpriseApi.js';
-import { buildOrderList, mergeAttachments } from '../services/manageView.js';
+import { buildOrderList, mergeAttachments, formatET } from '../services/manageView.js';
 import { encrypt } from '../crypto/tokenCrypto.js';
 import { lookupProperty } from '../services/countyLookup.js';
 import { resolvePrice, dollars } from '../services/priceTable.js';
@@ -152,6 +152,9 @@ orderRouter.post('/:draftId/upload', async (req, res, next) => {
       attachment = { file_url: `${config.appBaseUrl}/order/files/${saved.id}`, file_name: saved.fileName, file_size: saved.sizeBytes };
     }
 
+    // Stamp an upload time (use 50deeds' own when present) so the file shows a timestamp.
+    if (!attachment.uploaded_at) attachment.uploaded_at = new Date().toISOString();
+
     const data = draft.data;
     data.attachments = Array.isArray(data.attachments) ? data.attachments : [];
     data.attachments.push(attachment);
@@ -159,7 +162,7 @@ orderRouter.post('/:draftId/upload', async (req, res, next) => {
 
     // uploadDocument receives order_id/custom_order_id, so 50deeds attaches the file
     // to the order (pre-order uploads also ride along in the POST /orders attachments).
-    res.json({ ...attachment, attached });
+    res.json({ ...attachment, attached, uploaded_et: formatET(attachment.uploaded_at) });
   } catch (err) {
     next(err);
   }

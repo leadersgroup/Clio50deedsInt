@@ -1,9 +1,29 @@
 import { getDraftsByMatterId } from '../db/drafts.js';
 import { getOrder } from './enterpriseApi.js';
 
+// Format an ISO timestamp as Eastern Time, e.g. "Jun 18, 2026, 2:13 PM ET".
+// Intl applies EST/EDT automatically for America/New_York regardless of server TZ.
+export function formatET(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return (
+    d.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }) + ' ET'
+  );
+}
+
 // Merge the live order's attachments with the ones we've uploaded/stored, deduped by
 // file_url (or name). Keeps a just-uploaded file visible even before/if it's linked
-// to the order at 50deeds, so it doesn't vanish on Refresh.
+// to the order at 50deeds, so it doesn't vanish on Refresh. Each attachment gets an
+// `uploaded_et` (Eastern Time) derived from 50deeds' uploaded_date or our uploaded_at.
 export function mergeAttachments(live, stored) {
   const out = [];
   const seen = new Set();
@@ -12,7 +32,7 @@ export function mergeAttachments(live, stored) {
     const key = a.file_url || a.file_name;
     if (key && seen.has(key)) continue;
     if (key) seen.add(key);
-    out.push(a);
+    out.push({ ...a, uploaded_et: formatET(a.uploaded_date || a.uploaded_at) });
   }
   return out;
 }

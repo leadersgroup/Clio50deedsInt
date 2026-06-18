@@ -4,6 +4,7 @@ import { getDraft, updateDraftData, setDraftStripeSession } from '../db/drafts.j
 import { saveFile, getFile } from '../db/files.js';
 import { getOrder, uploadDocument } from '../services/enterpriseApi.js';
 import { buildOrderList, mergeAttachments } from '../services/manageView.js';
+import { encrypt } from '../crypto/tokenCrypto.js';
 import { lookupProperty } from '../services/countyLookup.js';
 import { resolvePrice, dollars } from '../services/priceTable.js';
 import { isValidDeedType, deedTypeForParties, TRANSFER_PARTIES } from '../services/deedTypes.js';
@@ -220,6 +221,10 @@ orderRouter.post('/:draftId/submit', async (req, res, next) => {
     data.state = { ...(data.state || {}), value: state };
     // Authoritative deed type derived server-side from the transfer parties.
     data.deedType = { ...(data.deedType || {}), value: deedType, needsConfirmation: false };
+    // Encrypt SSNs at rest (PII) — decrypted only when the order is sent to 50deeds.
+    for (const f of ['grantorSsn', 'granteeSsn']) {
+      if (data[f]?.value) data[f] = { value: encrypt(String(data[f].value)) };
+    }
     await updateDraftData(draft.id, data);
 
     // Pre-flight: the Enterprise POST /orders requires these and runs AFTER payment,

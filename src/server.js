@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
 import { migrate } from './db/migrate.js';
+import { purgeAbandonedDrafts } from './db/drafts.js';
 import { oauthRouter } from './routes/oauth.js';
 import { customActionRouter } from './routes/customAction.js';
 import { orderRouter } from './routes/order.js';
@@ -65,11 +66,24 @@ app.use((err, _req, res, _next) => {
   res.status(500).send('Something went wrong. Please try again from the Clio matter.');
 });
 
+// Periodically purge abandoned drafts so PII (encrypted SSNs, addresses) doesn't linger.
+function schedulePurge() {
+  const run = () =>
+    purgeAbandonedDrafts()
+      .then((n) => {
+        if (n) console.log(`[purge] removed ${n} abandoned draft(s)`);
+      })
+      .catch((err) => console.error('[purge] failed', err.message));
+  run();
+  setInterval(run, 6 * 60 * 60 * 1000).unref();
+}
+
 async function start() {
   await migrate();
   app.listen(config.port, () => {
     console.log(`[server] listening on :${config.port} (${config.isProd ? 'production' : 'development'})`);
   });
+  schedulePurge();
 }
 
 start().catch((err) => {

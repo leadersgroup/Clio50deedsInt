@@ -1,4 +1,5 @@
 import { createOrder } from './enterpriseApi.js';
+import { decrypt } from '../crypto/tokenCrypto.js';
 
 // Submit a paid deed order to the 50deeds Enterprise system of record (Base44),
 // the same pipeline fastwill.com orders flow through. Called AFTER Stripe payment
@@ -8,6 +9,16 @@ import { createOrder } from './enterpriseApi.js';
 export async function submitPaidOrder(draft, { stripeSessionId, amountCents } = {}) {
   const data = draft.data || {};
   const val = (f) => (data[f] && typeof data[f] === 'object' ? data[f].value : data[f]) || '';
+  // SSNs are stored encrypted at rest; decrypt only here, to send to 50deeds.
+  const ssn = (f) => {
+    const v = val(f);
+    if (!v) return '';
+    try {
+      return decrypt(v);
+    } catch {
+      return '';
+    }
+  };
 
   // Trace back to the Clio matter (the Enterprise API has no dedicated Clio field,
   // so matter identity rides in additional_instructions + custom traceability).
@@ -45,9 +56,9 @@ export async function submitPaidOrder(draft, { stripeSessionId, amountCents } = 
     // contact_name is REQUIRED by POST /orders; default to the client/grantor.
     contact_name: val('grantorName') || val('granteeName'),
     contact_email: val('contactEmail'),
-    // Required for NY orders only; sent when collected.
-    ...(val('grantorSsn') ? { grantor_ssn: val('grantorSsn') } : {}),
-    ...(val('granteeSsn') ? { grantee_ssn: val('granteeSsn') } : {}),
+    // Required for NY orders only; decrypted from at-rest storage when present.
+    ...(ssn('grantorSsn') ? { grantor_ssn: ssn('grantorSsn') } : {}),
+    ...(ssn('granteeSsn') ? { grantee_ssn: ssn('granteeSsn') } : {}),
     additional_instructions: traceLines.join('\n'),
     // Payment is collected from the attorney via Stripe BEFORE this call, so the
     // order must NOT trigger the enterprise ACH debit. Contract with the 50deeds

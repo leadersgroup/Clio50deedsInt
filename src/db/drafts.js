@@ -58,6 +58,19 @@ export async function getDraftsByMatterId(clioMatterId) {
   return rows;
 }
 
+// Purge abandoned (never-paid) drafts older than 24h, plus any now-orphaned uploaded
+// files. Limits how long PII (e.g. encrypted SSNs, addresses) lingers for orders that
+// were started but never completed. Paid drafts are kept (SSNs already cleared on finalize).
+export async function purgeAbandonedDrafts() {
+  const { rowCount } = await query(
+    `DELETE FROM deed_order_drafts WHERE status <> 'paid' AND created_at < now() - interval '24 hours'`,
+  );
+  await query(
+    `DELETE FROM order_files WHERE created_at < now() - interval '24 hours' AND draft_id NOT IN (SELECT id FROM deed_order_drafts)`,
+  ).catch(() => {});
+  return rowCount;
+}
+
 export async function markDraft(id, { status, orderId }) {
   await query(
     `UPDATE deed_order_drafts SET status = $2, order_id = COALESCE($3, order_id), updated_at = now() WHERE id = $1`,

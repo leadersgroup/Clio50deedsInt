@@ -221,6 +221,23 @@ orderRouter.post('/:draftId/submit', async (req, res, next) => {
     data.deedType = { ...(data.deedType || {}), value: deedType, needsConfirmation: false };
     await updateDraftData(draft.id, data);
 
+    // Pre-flight: the Enterprise POST /orders requires these and runs AFTER payment,
+    // so validate now — block here rather than charge-then-fail.
+    const fval = (f) => (data[f] && typeof data[f] === 'object' ? data[f].value : data[f]) || '';
+    const missing = [];
+    if (!String(fval('propertyAddress')).trim()) missing.push('property address');
+    if (!String(fval('grantorName')).trim()) missing.push('homeowner name');
+    if (!String(fval('granteeName')).trim()) missing.push('new owner name');
+    if (!String(fval('contactEmail')).trim()) missing.push('contact email');
+    if (missing.length) {
+      return res.status(400).send(blockPage(`Please add the ${missing.join(', ')} before continuing to payment.`, `/order/${draft.id}`));
+    }
+    if (state === 'NY') {
+      return res
+        .status(400)
+        .send(blockPage('New York deed orders require the grantor and grantee SSNs, which this integration does not collect yet — please place NY orders directly with 50deeds for now.', `/order/${draft.id}`));
+    }
+
     // Resolve the price to charge (Enterprise pricing, per county + deed type).
     const price = await resolvePrice({ state, county, deedType });
 
@@ -287,6 +304,16 @@ orderRouter.get('/:draftId/success', async (req, res, next) => {
     next(err);
   }
 });
+
+// Shown when a submit is blocked pre-payment (missing field / unsupported state).
+function blockPage(message, backUrl) {
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Cannot submit yet</title>
+<style>body{font-family:system-ui,sans-serif;max-width:520px;margin:80px auto;padding:0 20px;color:#1a2b4a}
+.amber{color:#b26a00}.btn{display:inline-block;margin-top:18px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700;padding:11px 18px;border-radius:10px}</style></head>
+<body><h1>⚠️ Can't submit this order yet</h1>
+<p class="amber">${message}</p>
+<p><a class="btn" href="${backUrl}">← Back to the order</a></p></body></html>`;
+}
 
 function successHtml({ paid, displayNumber, orderId, customOrderId, draftId }) {
   // Link to our "View/manage 50deeds order" page (capability URL, no Clio nonce).

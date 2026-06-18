@@ -93,6 +93,9 @@
         <label>New Owner Name <span class="muted" id="toLabel"></span></label>
         <input type="text" name="granteeName" id="granteeName" value="<%= d.granteeName.value %>" placeholder="Name of the trust, individual, or company receiving title" required />
 
+        <label>Contact email <span class="muted">(for order updates)</span></label>
+        <input type="email" name="contactEmail" id="contactEmail" value="<%= d.contactEmail.value %>" placeholder="attorney@firm.com" required />
+
         <div class="price-head"><span class="price-ico">&#127991;</span> Price Estimate</div>
         <div class="price-card">
           <div class="price-empty" id="priceEmpty">Enter a valid property address to calculate the price.</div>
@@ -117,7 +120,6 @@
       <input type="hidden" name="transferFrom" id="transferFrom" value="<%= d.transferFrom ? d.transferFrom.value : '' %>" />
       <input type="hidden" name="transferTo" id="transferTo" value="<%= d.transferTo ? d.transferTo.value : '' %>" />
       <!-- Required by the Enterprise order but derived/pre-filled, not shown as primary fields -->
-      <input type="hidden" name="contactEmail" id="contactEmail" value="<%= d.contactEmail.value %>" />
       <input type="hidden" name="county" id="county" value="<%= d.county.value %>" />
       <input type="hidden" name="state" id="state" value="<%= d.state.value %>" />
       <input type="hidden" name="apn" id="apn" value="<%= d.apn.value %>" />
@@ -201,7 +203,8 @@
 
     function validate() {
       const ok = selFrom && selTo && $('propertyAddress').value.trim()
-        && $('grantorName').value.trim() && $('granteeName').value.trim();
+        && $('grantorName').value.trim() && $('granteeName').value.trim()
+        && $('contactEmail').value.trim();
       $('submitBtn').disabled = !ok;
     }
 
@@ -298,7 +301,7 @@
       e.target.value = '';
     });
 
-    ['propertyAddress', 'grantorName', 'granteeName'].forEach((id) => $(id).addEventListener('input', validate));
+    ['propertyAddress', 'grantorName', 'granteeName', 'contactEmail'].forEach((id) => $(id).addEventListener('input', validate));
     $('propertyAddress').addEventListener('blur', lookupAndPrice);
 
     // Called by the Google Places autocomplete after it sets state/county/city.

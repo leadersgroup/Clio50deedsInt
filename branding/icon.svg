@@ -4,10 +4,10 @@
 
   <!-- House (canton mark) -->
   <g fill="#ffffff">
-    <path d="M172 144 L262 230 L82 230 Z"/>
-    <rect x="108" y="228" width="128" height="124" rx="5"/>
+    <path d="M170 150 L270 236 L70 236 Z"/>
+    <rect x="90" y="234" width="160" height="104" rx="6"/>
   </g>
-  <rect x="154" y="288" width="36" height="64" rx="2" fill="#16294E"/>
+  <rect x="150" y="292" width="40" height="46" rx="2" fill="#16294E"/>
 
   <!-- Flag stripes (3 thick bars) -->
   <g fill="#D0202F">

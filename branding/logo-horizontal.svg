@@ -2,10 +2,10 @@
   <!-- Flag mark: navy canton + white house + red stripes (on white) -->
   <rect x="24" y="22" width="104" height="116" rx="8" fill="#16294E"/>
   <g fill="#ffffff">
-    <path d="M76 44 L107 74 L45 74 Z"/>
-    <rect x="55" y="73" width="42" height="50" rx="2"/>
+    <path d="M76 48 L116 80 L36 80 Z"/>
+    <rect x="46" y="78" width="60" height="44" rx="2"/>
   </g>
-  <rect x="69" y="96" width="14" height="27" rx="1.5" fill="#16294E"/>
+  <rect x="68" y="100" width="16" height="22" rx="1.5" fill="#16294E"/>
 
   <!-- 3 thick stripes -->
   <g fill="#D0202F">

@@ -4,9 +4,10 @@ Everything needed to publish the **50deeds for Clio** integration in the
 [Clio App Directory](https://www.clio.com/app-directory/), plus the brand system
 used inside the app itself.
 
-> Note: align the palette and wordmark with 50deeds.com's existing brand before
-> publishing — if 50deeds has official hex values or a logo file, swap them in.
-> The values below match the integration's current UI.
+> These assets use 50deeds.com's actual brand: the navy + red US-flag mark with the
+> house, and the "50DEEDS.COM" wordmark. The hex values below are close approximations
+> sampled from the logo — swap in 50deeds' official values and the original vector
+> wordmark for production.
 
 ---
 
@@ -77,8 +78,10 @@ real-estate attorneys.
 | `icon.svg` | App tile / favicon / Directory icon (square, 512×512) |
 | `logo-horizontal.svg` | Wordmark lockup for docs, emails, the in-app header |
 
-**The mark:** a deed page with an amber "recorded" seal and checkmark on a blue
-tile — "an official deed, done." It reads clearly down to 16px.
+**The mark:** 50deeds.com's US-flag logo — a navy canton with a white house and red
+flag stripes. `icon.svg` adapts it to a square app tile (navy field, white house, red
+stripes); `logo-horizontal.svg` is the flag mark + "50DEEDS.COM" wordmark + "FOR CLIO".
+The house reads clearly down to 16px.
 
 **Export targets** (rasterize `icon.svg`):
 - Clio Directory icon: **512×512 PNG** (and a 1024×1024 master).
@@ -97,25 +100,26 @@ wordmark on a low-contrast background, or rename the app in the lockup.
 
 | Token | Hex | Role |
 |---|---|---|
-| Primary Blue | `#2563eb` | Primary actions, links, brand |
-| Deep Navy | `#1a2b4a` | Headings, body text, depth |
-| Brand Gradient | `#3b82f6 → #1d3a8f` | App tile background |
-| Seal Amber | `#f59e0b` | Accent — "recorded / official" |
+| Brand Navy | `#16294E` | Canton, wordmark, headings, primary |
+| Brand Red | `#D0202F` | Flag stripes, the "5", accents |
+| White | `#FFFFFF` | House, stripe gaps, surfaces |
 | Success Green | `#1a7f4b` | Confirmed / paid states |
 | Alert Amber (text) | `#b26a00` | Warnings / blocked states |
 | Surface | `#f1f4f9` | Card and section backgrounds |
 | Line | `#e2e8f0` | Borders / dividers |
 | Muted | `#64748b` | Secondary text, timestamps |
 
-These match the live order form, success, and manage screens.
+> The live app screens currently use a blue (`#2563eb`) action color from the build.
+> For full brand alignment, migrate actions/links to **Brand Navy** with **Brand Red**
+> accents — see §8. (Optional; happy to apply it on request.)
 
 ---
 
 ## 6. Typography
 
-- **Primary typeface:** Inter (web). Fallback stack: `Inter, "Segoe UI", system-ui, -apple-system, sans-serif`.
-- **Wordmark:** Inter ExtraBold (800), `50` in Primary Blue, `deeds` in Deep Navy, tight tracking (~-2.5).
-- **Headings:** 700–800. **Body:** 400–600. **Eyebrow/labels:** 600, uppercase, +6 tracking (e.g. "FOR CLIO").
+- **UI typeface:** Inter (web). Fallback: `Inter, "Segoe UI", system-ui, -apple-system, sans-serif`.
+- **Wordmark:** "50DEEDS.COM" — bold condensed uppercase sans, the **5** in Brand Red and the rest in Brand Navy. For production use 50deeds' official wordmark file; the SVG approximates it with a condensed stack (`'Arial Narrow', 'Inter', sans-serif`).
+- **Headings:** 700–800. **Body:** 400–600. **Eyebrow/labels:** 700, uppercase, +7 tracking (e.g. "FOR CLIO").
 
 ---
 
@@ -141,9 +145,9 @@ Capture at a clean 1280–1600px wide. Suggested order + captions:
 
 Apply the system consistently across the screens the app already renders:
 
-- **OAuth consent screen** — horizontal lockup, Primary Blue CTA.
-- **Order form header** — "New Order" with the mark; Primary Blue submit.
-- **Success page** — Success Green confirmation, Primary Blue "View & track".
+- **OAuth consent screen** — horizontal lockup, Brand Navy CTA.
+- **Order form header** — "New Order" with the mark; Brand Navy submit (Brand Red accents).
+- **Success page** — Success Green confirmation, Brand Navy "View & track".
 - **Manage page** — header with the mark + matter reference.
 - **Favicon** — `icon.svg` export.
 

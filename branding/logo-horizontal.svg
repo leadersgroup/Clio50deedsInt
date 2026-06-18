@@ -1,30 +1,20 @@
-<svg width="760" height="220" viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="50deeds for Clio">
-  <defs>
-    <linearGradient id="tile2" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#3b82f6"/>
-      <stop offset="1" stop-color="#1d3a8f"/>
-    </linearGradient>
-    <filter id="soft2" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#0a1733" flood-opacity="0.22"/>
-    </filter>
-  </defs>
-
-  <!-- Icon (512-space drawing scaled to 150px) -->
-  <g transform="translate(28,35) scale(0.293)">
-    <rect width="512" height="512" rx="116" fill="url(#tile2)"/>
-    <g filter="url(#soft2)"><rect x="146" y="96" width="220" height="300" rx="24" fill="#ffffff"/></g>
-    <rect x="178" y="146" width="132" height="20" rx="10" fill="#2563eb"/>
-    <rect x="178" y="196" width="156" height="13" rx="6.5" fill="#cdd7e6"/>
-    <rect x="178" y="226" width="156" height="13" rx="6.5" fill="#cdd7e6"/>
-    <rect x="178" y="256" width="112" height="13" rx="6.5" fill="#cdd7e6"/>
-    <g filter="url(#soft2)"><circle cx="344" cy="356" r="66" fill="#f59e0b"/></g>
-    <circle cx="344" cy="356" r="66" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="4" stroke-dasharray="2 12" stroke-linecap="round"/>
-    <path d="M316 357 l18 19 l36 -42" fill="none" stroke="#ffffff" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+<svg width="900" height="200" viewBox="0 0 900 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="50deeds.com for Clio">
+  <!-- Flag mark: navy canton + white house + red stripes (on white) -->
+  <rect x="24" y="24" width="78" height="110" rx="8" fill="#16294E"/>
+  <g fill="#ffffff">
+    <path d="M63 44 L92 72 L34 72 Z"/>
+    <rect x="44" y="72" width="38" height="46" rx="2"/>
   </g>
+  <rect x="57" y="93" width="12" height="25" rx="1.5" fill="#16294E"/>
+
+  <rect x="112" y="24" width="120" height="20" rx="3" fill="#D0202F"/>
+  <rect x="112" y="54" width="120" height="20" rx="3" fill="#D0202F"/>
+  <rect x="112" y="84" width="120" height="20" rx="3" fill="#D0202F"/>
+  <rect x="112" y="114" width="120" height="20" rx="3" fill="#D0202F"/>
 
   <!-- Wordmark -->
-  <text x="208" y="120" font-family="Inter, 'Segoe UI', system-ui, -apple-system, sans-serif" font-size="76" font-weight="800" letter-spacing="-2.5">
-    <tspan fill="#2563eb">50</tspan><tspan fill="#1a2b4a">deeds</tspan>
+  <text x="270" y="112" font-family="'Arial Narrow', 'Inter', system-ui, -apple-system, sans-serif" font-size="68" font-weight="800" letter-spacing="-1">
+    <tspan fill="#D0202F">5</tspan><tspan fill="#16294E">0DEEDS.COM</tspan>
   </text>
-  <text x="212" y="162" font-family="Inter, 'Segoe UI', system-ui, -apple-system, sans-serif" font-size="26" font-weight="600" letter-spacing="6" fill="#64748b">FOR CLIO</text>
+  <text x="272" y="150" font-family="'Arial Narrow', 'Inter', system-ui, -apple-system, sans-serif" font-size="23" font-weight="700" letter-spacing="7" fill="#16294E">FOR CLIO</text>
 </svg>

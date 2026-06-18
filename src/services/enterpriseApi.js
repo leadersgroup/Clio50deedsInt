@@ -70,7 +70,9 @@ export async function createOrder(fields) {
 }
 
 export async function getOrder(orderId) {
-  const { data } = await enterpriseRequest(`/orders/${orderId}`, 'GET');
+  const { status, data } = await enterpriseRequest(`/orders/${orderId}`, 'GET');
+  // 404 "Order not found" => the order was deleted/cancelled at 50deeds.
+  if (status === 404 || data?.error) return { notFound: true };
   return data;
 }
 

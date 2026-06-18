@@ -161,15 +161,17 @@ customActionRouter.get('/manage-order', async (req, res, next) => {
       } catch (err) {
         console.error('[manage-order] live status fetch failed:', err.status || '', err.message);
       }
+      const removed = live?.notFound === true;
       orders.push({
         draftId: d.id,
         orderId: d.order_id,
         customOrderId: data.enterpriseCustomOrderId || live?.custom_order_id || '',
-        status: live?.status || d.status || 'Submitted',
+        status: removed ? 'Removed at 50deeds' : live?.status || d.status || 'Submitted',
+        removed,
         transfer: val('transferFrom') || val('transferTo') ? `${val('transferFrom') || '?'} → ${val('transferTo') || '?'}` : '',
         propertyAddress: val('propertyAddress'),
-        total: live && live.total_price != null ? `$${Number(live.total_price).toFixed(2)}` : '',
-        attachments: (Array.isArray(live?.attachments) ? live.attachments : data.attachments) || [],
+        total: removed ? '' : live && live.total_price != null ? `$${Number(live.total_price).toFixed(2)}` : '',
+        attachments: removed ? [] : (Array.isArray(live?.attachments) ? live.attachments : data.attachments) || [],
       });
     }
 

@@ -20,6 +20,7 @@
     .ordno{font-weight:800;font-size:15px;}
     code{background:#f1f4f9;padding:2px 6px;border-radius:4px;}
     .badge{font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px;background:#eaf0fb;color:#2b4a86;white-space:nowrap;}
+    .badge.removed{background:#fde8e8;color:#b42318;}
     .meta{font-size:14px;color:#3a4a63;padding:3px 0;}
     .docs-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;border-top:1px solid var(--line);padding-top:14px;}
     .docs-head .lab{font-size:13px;font-weight:700;}
@@ -50,7 +51,7 @@
       <div class="card" data-draft="<%= o.draftId %>">
         <div class="row1">
           <div class="ordno">Order <code><%= o.customOrderId || o.orderId %></code></div>
-          <span class="badge" id="badge-<%= o.draftId %>"><%= o.status %></span>
+          <span class="badge<%= o.removed ? ' removed' : '' %>" id="badge-<%= o.draftId %>"><%= o.status %></span>
         </div>
         <% if (o.transfer) { %><div class="meta">Transfer: <%= o.transfer %></div><% } %>
         <% if (o.propertyAddress) { %><div class="meta">Property: <%= o.propertyAddress %></div><% } %>
@@ -133,7 +134,7 @@
         if (!r.ok) return;
         const d = await r.json();
         const badge = document.getElementById('badge-' + draft);
-        if (badge && d.status) badge.textContent = d.status;
+        if (badge && d.status) { badge.textContent = d.status; badge.classList.toggle('removed', !!d.removed); }
         const total = document.getElementById('total-' + draft);
         if (total && d.total) total.textContent = 'Total: ' + d.total;
         const list = document.getElementById('uploads-' + draft);

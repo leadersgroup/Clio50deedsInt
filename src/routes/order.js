@@ -151,11 +151,13 @@ orderRouter.get('/:draftId/status', async (req, res, next) => {
       }
     }
     const data = draft.data || {};
+    const removed = live?.notFound === true;
     res.json({
-      status: live?.status || draft.status || 'Submitted',
+      status: removed ? 'Removed at 50deeds' : live?.status || draft.status || 'Submitted',
+      removed,
       customOrderId: data.enterpriseCustomOrderId || live?.custom_order_id || '',
-      total: live && live.total_price != null ? `$${Number(live.total_price).toFixed(2)}` : '',
-      attachments: (Array.isArray(live?.attachments) ? live.attachments : data.attachments) || [],
+      total: removed ? '' : live && live.total_price != null ? `$${Number(live.total_price).toFixed(2)}` : '',
+      attachments: removed ? [] : (Array.isArray(live?.attachments) ? live.attachments : data.attachments) || [],
     });
   } catch (err) {
     next(err);

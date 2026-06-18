@@ -217,20 +217,27 @@ orderRouter.get('/:draftId/success', async (req, res, next) => {
       displayNumber: current.display_number,
       orderId: current.order_id,
       customOrderId: current.data?.enterpriseCustomOrderId,
+      clioMatterId: current.clio_matter_id,
     }));
   } catch (err) {
     next(err);
   }
 });
 
-function successHtml({ paid, displayNumber, orderId, customOrderId }) {
+function successHtml({ paid, displayNumber, orderId, customOrderId, clioMatterId }) {
+  // Deep link back to the Clio matter (where the confirmation + status notes post).
+  const matterUrl = clioMatterId ? `${config.clio.authBase}/nc/#/matters/${clioMatterId}` : '';
   return `<!doctype html><html><head><meta charset="utf-8"><title>${paid ? 'Order confirmed' : 'Payment pending'}</title>
 <style>body{font-family:system-ui,sans-serif;max-width:560px;margin:80px auto;padding:0 20px;color:#1a2b4a}
-.ok{color:#1a7f4b}code{background:#f1f4f9;padding:2px 6px;border-radius:4px}</style></head>
+.ok{color:#1a7f4b}code{background:#f1f4f9;padding:2px 6px;border-radius:4px}
+.btn{display:inline-block;margin-top:18px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700;padding:11px 18px;border-radius:10px}
+.fine{font-size:13px;color:#7a8aa6;margin-top:10px}</style></head>
 <body><h1>${paid ? '✅ Deed order confirmed' : '⏳ Payment processing'}</h1>
 ${paid
   ? `<p class="ok">Your deed order has been submitted to 50deeds and is in fulfillment.</p>
-     <p>Order <code>${customOrderId || orderId || ''}</code> · Clio matter <code>${displayNumber || ''}</code></p>`
+     <p>Order <code>${customOrderId || orderId || ''}</code> · Clio matter <code>${displayNumber || ''}</code></p>
+     ${matterUrl ? `<p><a class="btn" href="${matterUrl}">View &amp; track this order in Clio →</a></p>
+     <p class="fine">Status updates from 50deeds post automatically to this matter.</p>` : ''}`
   : `<p>We're confirming your payment and submitting your order. If this persists, check your email for a receipt.</p>`}
 </body></html>`;
 }

@@ -11,7 +11,9 @@
     .wrap{max-width:680px;margin:0 auto;padding:24px 20px 80px;}
     .top{display:flex;align-items:center;gap:12px;margin:8px 0 6px;}
     .back{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);text-decoration:none;font-size:18px;}
-    h1{font-size:22px;margin:0;font-weight:800;}
+    h1{font-size:22px;margin:0;font-weight:800;flex:1;}
+    .refresh{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink);}
+    .refresh:disabled{color:var(--muted);cursor:default;}
     .sub{color:var(--muted);font-size:14px;margin:0 0 20px;}
     .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px;}
     .row1{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
@@ -23,7 +25,10 @@
     .docs-head .lab{font-size:13px;font-weight:700;}
     .upload-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;}
     .uploads{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
-    .frow{display:flex;justify-content:space-between;font-size:13px;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:8px 12px;}
+    .frow{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:8px 12px;}
+    .frow a{color:var(--blue);text-decoration:none;font-weight:600;}
+    .frow a:hover{text-decoration:underline;}
+    .muted{color:var(--muted);}
     .sub-note{font-size:12px;color:var(--muted);margin-top:8px;min-height:16px;}
     .empty{color:var(--muted);font-size:14px;}
   </style>
@@ -33,6 +38,7 @@
     <div class="top">
       <a class="back" href="<%= matterUrl || '#' %>" aria-label="Back to Clio matter">&larr;</a>
       <h1>Your 50deeds order</h1>
+      <% if (orders.length) { %><button type="button" class="refresh" id="refreshBtn">&#8635; Refresh</button><% } %>
     </div>
     <p class="sub">Clio matter <strong><%= matterRef || '—' %></strong></p>
 
@@ -41,24 +47,31 @@
     <% } %>
 
     <% orders.forEach(function(o){ %>
-      <div class="card">
+      <div class="card" data-draft="<%= o.draftId %>">
         <div class="row1">
           <div class="ordno">Order <code><%= o.customOrderId || o.orderId %></code></div>
-          <span class="badge"><%= o.status %></span>
+          <span class="badge" id="badge-<%= o.draftId %>"><%= o.status %></span>
         </div>
         <% if (o.transfer) { %><div class="meta">Transfer: <%= o.transfer %></div><% } %>
         <% if (o.propertyAddress) { %><div class="meta">Property: <%= o.propertyAddress %></div><% } %>
-        <% if (o.total) { %><div class="meta">Total: <%= o.total %></div><% } %>
+        <% if (o.total) { %><div class="meta" id="total-<%= o.draftId %>">Total: <%= o.total %></div><% } %>
 
         <div class="docs-head">
-          <div class="lab">Documents <span style="font-weight:500;color:var(--muted)">(send signed deed / supporting files to 50deeds)</span></div>
+          <div class="lab">Documents <span class="muted">(send signed deed / supporting files to 50deeds)</span></div>
           <label class="upload-btn">&uarr; Upload to 50deeds
             <input type="file" class="fileInput" data-draft="<%= o.draftId %>" multiple style="display:none" />
           </label>
         </div>
         <div class="uploads" id="uploads-<%= o.draftId %>">
           <% (o.attachments || []).forEach(function(a){ %>
-            <div class="frow"><span>📄 <%= a.file_name || a.name || 'document' %></span></div>
+            <div class="frow">
+              <% if (a.file_url) { %>
+                <a href="<%= a.file_url %>" target="_blank" rel="noopener">📄 <%= a.file_name || a.name || 'document' %></a>
+              <% } else { %>
+                <span>📄 <%= a.file_name || a.name || 'document' %></span>
+              <% } %>
+              <% if (a.file_size) { %><span class="muted"><%= Math.max(1, Math.round(a.file_size / 1024)) %> KB</span><% } %>
+            </div>
           <% }) %>
         </div>
         <div class="sub-note" id="status-<%= o.draftId %>"></div>
@@ -67,6 +80,17 @@
   </div>
 
   <script>
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    function attachHtml(a) {
+      const name = esc(a.file_name || a.name || 'document');
+      const size = a.file_size ? '<span class="muted">' + Math.max(1, Math.round(a.file_size / 1024)) + ' KB</span>' : '';
+      const label = a.file_url
+        ? '<a href="' + esc(a.file_url) + '" target="_blank" rel="noopener">📄 ' + name + '</a>'
+        : '<span>📄 ' + name + '</span>';
+      return '<div class="frow">' + label + size + '</div>';
+    }
+
+    // Upload (post-order) — reuses /order/:id/upload, which forwards to the order.
     document.querySelectorAll('.fileInput').forEach((inp) => {
       inp.addEventListener('change', async (e) => {
         const draft = inp.dataset.draft;
@@ -87,13 +111,7 @@
             });
             const d = await r.json();
             if (r.ok) {
-              const row = document.createElement('div');
-              row.className = 'frow';
-              const tag = d.attached
-                ? '<span style="color:#1a7f4b;font-weight:700">sent to 50deeds</span>'
-                : '<span style="color:#b26a00">stored — not yet attached</span>';
-              row.innerHTML = '<span>📄 ' + d.file_name + '</span>' + tag;
-              list.appendChild(row);
+              list.insertAdjacentHTML('beforeend', attachHtml({ file_url: d.file_url, file_name: d.file_name, file_size: d.file_size }));
               status.textContent = d.attached
                 ? ''
                 : 'Uploaded and stored, but 50deeds doesn’t yet accept documents on an existing order — it will attach automatically once that endpoint is live.';
@@ -107,6 +125,32 @@
         e.target.value = '';
       });
     });
+
+    // Refresh — re-fetch live status + attachments per order (no Clio nonce needed).
+    async function refreshOrder(draft) {
+      try {
+        const r = await fetch('/order/' + draft + '/status');
+        if (!r.ok) return;
+        const d = await r.json();
+        const badge = document.getElementById('badge-' + draft);
+        if (badge && d.status) badge.textContent = d.status;
+        const total = document.getElementById('total-' + draft);
+        if (total && d.total) total.textContent = 'Total: ' + d.total;
+        const list = document.getElementById('uploads-' + draft);
+        if (list) list.innerHTML = (d.attachments || []).map(attachHtml).join('');
+      } catch (e) {}
+    }
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', async () => {
+        refreshBtn.disabled = true;
+        const label = refreshBtn.innerHTML;
+        refreshBtn.textContent = 'Refreshing…';
+        await Promise.all(Array.from(document.querySelectorAll('[data-draft]')).map((c) => refreshOrder(c.dataset.draft)));
+        refreshBtn.innerHTML = label;
+        refreshBtn.disabled = false;
+      });
+    }
   </script>
 </body>
 </html>

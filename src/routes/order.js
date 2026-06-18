@@ -2,7 +2,7 @@ import express from 'express';
 import { config } from '../config.js';
 import { getDraft, updateDraftData, setDraftStripeSession } from '../db/drafts.js';
 import { saveFile, getFile } from '../db/files.js';
-import { addOrderAttachment } from '../services/enterpriseApi.js';
+import { addOrderAttachment, getOrder } from '../services/enterpriseApi.js';
 import { lookupProperty } from '../services/countyLookup.js';
 import { resolvePrice, dollars } from '../services/priceTable.js';
 import { isValidDeedType, deedTypeForParties, TRANSFER_PARTIES } from '../services/deedTypes.js';
@@ -131,6 +131,32 @@ orderRouter.post('/:draftId/upload', async (req, res, next) => {
     }
 
     res.json({ id: saved.id, file_name: saved.fileName, file_size: saved.sizeBytes, file_url: fileUrl, attached });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Live order status + attachments for a draft (capability URL by draftId; no Clio
+// nonce needed). Powers the "Refresh" button on the manage page.
+orderRouter.get('/:draftId/status', async (req, res, next) => {
+  try {
+    const draft = await getDraft(req.params.draftId);
+    if (!draft) return res.status(404).json({ error: 'not found' });
+    let live = null;
+    if (draft.order_id) {
+      try {
+        live = await getOrder(draft.order_id);
+      } catch (err) {
+        console.error('[order] status fetch failed:', err.status || '', err.message);
+      }
+    }
+    const data = draft.data || {};
+    res.json({
+      status: live?.status || draft.status || 'Submitted',
+      customOrderId: data.enterpriseCustomOrderId || live?.custom_order_id || '',
+      total: live && live.total_price != null ? `$${Number(live.total_price).toFixed(2)}` : '',
+      attachments: (Array.isArray(live?.attachments) ? live.attachments : data.attachments) || [],
+    });
   } catch (err) {
     next(err);
   }

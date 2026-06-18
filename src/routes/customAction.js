@@ -2,8 +2,8 @@ import express from 'express';
 import { config } from '../config.js';
 import { fetchMatter, fetchContact, fetchMatterRelationships, fetchUser } from '../clio/matters.js';
 import { mapMatterToOrder } from '../services/fieldMapper.js';
-import { createDraft, getDraftsByMatterId } from '../db/drafts.js';
-import { getOrder } from '../services/enterpriseApi.js';
+import { createDraft } from '../db/drafts.js';
+import { buildOrderList } from '../services/manageView.js';
 
 export const customActionRouter = express.Router();
 
@@ -149,31 +149,7 @@ customActionRouter.get('/manage-order', async (req, res, next) => {
       throw err;
     }
 
-    const drafts = await getDraftsByMatterId(matter.id);
-    const orders = [];
-    for (const d of drafts) {
-      if (!d.order_id) continue; // only submitted orders
-      const data = d.data || {};
-      const val = (f) => (data[f] && typeof data[f] === 'object' ? data[f].value : data[f]) || '';
-      let live = null;
-      try {
-        live = await getOrder(d.order_id);
-      } catch (err) {
-        console.error('[manage-order] live status fetch failed:', err.status || '', err.message);
-      }
-      const removed = live?.notFound === true;
-      orders.push({
-        draftId: d.id,
-        orderId: d.order_id,
-        customOrderId: data.enterpriseCustomOrderId || live?.custom_order_id || '',
-        status: removed ? 'Removed at 50deeds' : live?.status || d.status || 'Submitted',
-        removed,
-        transfer: val('transferFrom') || val('transferTo') ? `${val('transferFrom') || '?'} → ${val('transferTo') || '?'}` : '',
-        propertyAddress: val('propertyAddress'),
-        total: removed ? '' : live && live.total_price != null ? `$${Number(live.total_price).toFixed(2)}` : '',
-        attachments: removed ? [] : (Array.isArray(live?.attachments) ? live.attachments : data.attachments) || [],
-      });
-    }
+    const orders = await buildOrderList(matter.id);
 
     res.render('manageOrder', {
       matterRef: matter.display_number || '',

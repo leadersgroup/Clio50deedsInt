@@ -3,6 +3,7 @@ import { config } from '../config.js';
 import { getDraft, updateDraftData, setDraftStripeSession } from '../db/drafts.js';
 import { saveFile, getFile } from '../db/files.js';
 import { addOrderAttachment, getOrder } from '../services/enterpriseApi.js';
+import { buildOrderList } from '../services/manageView.js';
 import { lookupProperty } from '../services/countyLookup.js';
 import { resolvePrice, dollars } from '../services/priceTable.js';
 import { isValidDeedType, deedTypeForParties, TRANSFER_PARTIES } from '../services/deedTypes.js';
@@ -164,6 +165,24 @@ orderRouter.get('/:draftId/status', async (req, res, next) => {
   }
 });
 
+// The "View/manage 50deeds order" page, reachable WITHOUT a Clio nonce (capability
+// URL by draftId) — used by the success page's "View & track" button. Renders the
+// same page as the custom action.
+orderRouter.get('/:draftId/manage', async (req, res, next) => {
+  try {
+    const draft = await getDraft(req.params.draftId);
+    if (!draft) return res.status(404).send('Order not found or expired.');
+    const orders = await buildOrderList(draft.clio_matter_id);
+    res.render('manageOrder', {
+      matterRef: draft.display_number || '',
+      matterUrl: draft.clio_matter_id ? `${config.clio.authBase}/nc/#/matters/${draft.clio_matter_id}` : '',
+      orders,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Submit: persist attorney edits, then start Stripe checkout for the resolved price.
 // The Enterprise order itself is created AFTER payment succeeds (see routes/stripe.js)
 // so it arrives already paid — the same way fastwill.com orders reach the pipeline.
@@ -259,16 +278,16 @@ orderRouter.get('/:draftId/success', async (req, res, next) => {
       displayNumber: current.display_number,
       orderId: current.order_id,
       customOrderId: current.data?.enterpriseCustomOrderId,
-      clioMatterId: current.clio_matter_id,
+      draftId: current.id,
     }));
   } catch (err) {
     next(err);
   }
 });
 
-function successHtml({ paid, displayNumber, orderId, customOrderId, clioMatterId }) {
-  // Deep link back to the Clio matter (where the confirmation + status notes post).
-  const matterUrl = clioMatterId ? `${config.clio.authBase}/nc/#/matters/${clioMatterId}` : '';
+function successHtml({ paid, displayNumber, orderId, customOrderId, draftId }) {
+  // Link to our "View/manage 50deeds order" page (capability URL, no Clio nonce).
+  const manageUrl = draftId ? `/order/${draftId}/manage` : '';
   return `<!doctype html><html><head><meta charset="utf-8"><title>${paid ? 'Order confirmed' : 'Payment pending'}</title>
 <style>body{font-family:system-ui,sans-serif;max-width:560px;margin:80px auto;padding:0 20px;color:#1a2b4a}
 .ok{color:#1a7f4b}code{background:#f1f4f9;padding:2px 6px;border-radius:4px}
@@ -278,7 +297,7 @@ function successHtml({ paid, displayNumber, orderId, customOrderId, clioMatterId
 ${paid
   ? `<p class="ok">Your deed order has been submitted to 50deeds and is in fulfillment.</p>
      <p>Order <code>${customOrderId || orderId || ''}</code> · Clio matter <code>${displayNumber || ''}</code></p>
-     ${matterUrl ? `<p><a class="btn" href="${matterUrl}">View &amp; track this order in Clio →</a></p>
+     ${manageUrl ? `<p><a class="btn" href="${manageUrl}">View &amp; track this order →</a></p>
      <p class="fine">Status updates from 50deeds post automatically to this matter.</p>` : ''}`
   : `<p>We're confirming your payment and submitting your order. If this persists, check your email for a receipt.</p>`}
 </body></html>`;

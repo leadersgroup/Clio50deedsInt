@@ -4,7 +4,7 @@ import { getDraft, updateDraftData, setDraftStripeSession } from '../db/drafts.j
 import { saveFile, getFile } from '../db/files.js';
 import { lookupProperty } from '../services/countyLookup.js';
 import { resolvePrice, dollars } from '../services/priceTable.js';
-import { isValidDeedType, DEFAULT_DEED_TYPE, TRANSFER_PARTIES } from '../services/deedTypes.js';
+import { isValidDeedType, deedTypeForParties, TRANSFER_PARTIES } from '../services/deedTypes.js';
 import { stripe } from '../stripe/client.js';
 
 export const orderRouter = express.Router();
@@ -53,7 +53,7 @@ orderRouter.get('/:draftId', async (req, res, next) => {
       draftId: draft.id,
       d: draft.data,
       priceDisplay: price.display,
-      defaultDeedType: DEFAULT_DEED_TYPE,
+      initialDeedType: deedTypeForParties(draft.data.transferFrom?.value, draft.data.transferTo?.value),
       transferParties: TRANSFER_PARTIES,
     });
   } catch (err) {
@@ -132,11 +132,11 @@ orderRouter.post('/:draftId/submit', async (req, res, next) => {
     const body = req.body || {};
     const state = String(body.state || draft.data.state?.value || '').toUpperCase();
     const county = String(body.county || draft.data.county?.value || '');
-    // All transfer-party combinations map to the single Enterprise deed type.
-    const deedType = String(body.deedType || DEFAULT_DEED_TYPE);
+    // Deed type is derived from the chosen transfer parties (9 combinations).
+    const deedType = deedTypeForParties(body.transferFrom, body.transferTo);
 
     if (!isValidDeedType(deedType)) {
-      return res.status(400).send('Please choose a valid deed type.');
+      return res.status(400).send('Please choose who is transferring and who is receiving the property.');
     }
 
     // Merge attorney-confirmed values into the draft data.
@@ -152,6 +152,8 @@ orderRouter.post('/:draftId/submit', async (req, res, next) => {
       }
     }
     data.state = { ...(data.state || {}), value: state };
+    // Authoritative deed type derived server-side from the transfer parties.
+    data.deedType = { ...(data.deedType || {}), value: deedType, needsConfirmation: false };
     await updateDraftData(draft.id, data);
 
     // Resolve the price to charge (Enterprise pricing, per county + deed type).

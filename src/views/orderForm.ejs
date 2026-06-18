@@ -105,7 +105,7 @@
       </div>
 
       <!-- Deed type is fixed; transfer parties are captured for the order notes. -->
-      <input type="hidden" name="deedType" id="deedType" value="<%= defaultDeedType %>" />
+      <input type="hidden" name="deedType" id="deedType" value="<%= initialDeedType %>" />
       <input type="hidden" name="transferFrom" id="transferFrom" value="<%= d.transferFrom ? d.transferFrom.value : '' %>" />
       <input type="hidden" name="transferTo" id="transferTo" value="<%= d.transferTo ? d.transferTo.value : '' %>" />
       <!-- Required by the Enterprise order but derived/pre-filled, not shown as primary fields -->
@@ -152,9 +152,11 @@
       $('transferFrom').value = selFrom;
       $('transferTo').value = selTo;
       if (selFrom && selTo) {
+        $('deedType').value = 'From ' + selFrom.toLowerCase() + ' to ' + selTo.toLowerCase();
         $('transferDesc').textContent = 'Transfer from ' + selFrom + ' to ' + selTo + '.';
         $('toLabel').textContent = '(the ' + selTo + ')';
       } else {
+        $('deedType').value = '';
         $('transferDesc').textContent = 'Choose who is transferring and who is receiving the property.';
         $('toLabel').textContent = '';
       }
@@ -191,7 +193,7 @@
         $('modalContinue').disabled = !(selFrom && selTo);
       });
     });
-    $('modalContinue').addEventListener('click', () => { closeModal(); applyTransfer(); validate(); });
+    $('modalContinue').addEventListener('click', () => { closeModal(); applyTransfer(); validate(); updatePrice(); });
     $('modalClose').addEventListener('click', closeModal);
     $('editTransfer').addEventListener('click', openModal);
 

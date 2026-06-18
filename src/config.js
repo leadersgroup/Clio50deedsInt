@@ -18,6 +18,11 @@ export const config = {
   port: parseInt(process.env.PORT || '3000', 10),
   appBaseUrl: required('APP_BASE_URL').replace(/\/$/, ''),
 
+  // Google Maps JS API key for property-address autocomplete (optional; the order
+  // form falls back to manual entry when unset). This is a browser key — restrict
+  // it by HTTP referrer in Google Cloud.
+  googleMapsApiKey: optional('GOOGLE_MAPS_API_KEY'),
+
   cookieSecret: required('COOKIE_SECRET'),
   tokenEncryptionKey: required('TOKEN_ENCRYPTION_KEY'),
 

@@ -55,6 +55,7 @@ orderRouter.get('/:draftId', async (req, res, next) => {
       priceDisplay: price.display,
       initialDeedType: deedTypeForParties(draft.data.transferFrom?.value, draft.data.transferTo?.value),
       transferParties: TRANSFER_PARTIES,
+      googleMapsApiKey: config.googleMapsApiKey,
     });
   } catch (err) {
     next(err);
@@ -143,7 +144,7 @@ orderRouter.post('/:draftId/submit', async (req, res, next) => {
     const editable = [
       'grantorName', 'grantorAddress', 'granteeName', 'propertyAddress', 'county', 'state',
       'apn', 'legalDescription', 'priorDeedReference', 'deedType', 'contactEmail', 'additionalInstructions',
-      'transferFrom', 'transferTo',
+      'transferFrom', 'transferTo', 'city',
     ];
     const data = draft.data;
     for (const f of editable) {

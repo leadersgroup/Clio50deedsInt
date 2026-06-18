@@ -18,6 +18,7 @@
     label:first-of-type{margin-top:0;}
     input[type=text],input[type=email],textarea{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink);}
     input::placeholder,textarea::placeholder{color:#9aa7bd;}
+    gmp-place-autocomplete{width:100%;display:block;}
     textarea{min-height:84px;resize:vertical;}
     .transfer{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
     .transfer .line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--muted);}
@@ -78,7 +79,10 @@
         </div>
 
         <label>Property Address</label>
-        <input type="text" name="propertyAddress" id="propertyAddress" value="<%= d.propertyAddress.value %>" placeholder="Enter the property address..." autocomplete="off" required />
+        <div id="addrMount">
+          <input type="text" name="propertyAddress" id="propertyAddress" value="<%= d.propertyAddress.value %>" placeholder="Enter the property address..." autocomplete="off" required />
+        </div>
+        <input type="hidden" name="city" id="city" value="<%= d.city ? d.city.value : '' %>" />
 
         <label>Homeowner Name</label>
         <input type="text" name="grantorName" id="grantorName" value="<%= d.grantorName.value %>" placeholder="As shown on last recorded deed" required />
@@ -212,8 +216,8 @@
           $('apn').value = d.apn || '';
           $('legalDescription').value = d.legalDescription || '';
           $('priorDeedReference').value = d.priorDeedReference || '';
-          if (d.county) $('county').value = d.county;
-          if (d.state) $('state').value = d.state;
+          if (d.county && !$('county').value.trim()) $('county').value = d.county;
+          if (d.state && !$('state').value.trim()) $('state').value = d.state;
         }
       } catch (e) {}
       await updatePrice();
@@ -269,11 +273,52 @@
     ['propertyAddress', 'grantorName', 'granteeName'].forEach((id) => $(id).addEventListener('input', validate));
     $('propertyAddress').addEventListener('blur', lookupAndPrice);
 
+    // Called by the Google Places autocomplete after it sets state/county/city.
+    window.onPlaceResolved = function () { lookupAndPrice(); validate(); };
+
     applyTransfer();
     validate();
     if ($('propertyAddress').value.trim()) lookupAndPrice();
     // First-run: prompt for transfer parties like the native flow.
     if (!(selFrom && selTo)) openModal();
   </script>
+
+  <% if (googleMapsApiKey) { %>
+  <script>
+    // Google Places Autocomplete on the property address. On select, derive
+    // state / county / city, then run the county lookup + Enterprise pricing.
+    window.__initPlaces = async function () {
+      try {
+        const { PlaceAutocompleteElement } = await google.maps.importLibrary('places');
+        const mount = document.getElementById('addrMount');
+        const plain = document.getElementById('propertyAddress');
+        const pac = new PlaceAutocompleteElement();
+        pac.id = 'placeAC';
+        plain.type = 'hidden';            // keep as the form value carrier
+        mount.appendChild(pac);
+        pac.addEventListener('gmp-select', async (event) => {
+          try {
+            const place = event.placePrediction.toPlace();
+            await place.fetchFields({ fields: ['formattedAddress', 'addressComponents'] });
+            const comps = place.addressComponents || [];
+            const pick = (type, short) => {
+              const c = comps.find((x) => (x.types || []).includes(type));
+              return c ? (short ? c.shortText : c.longText) : '';
+            };
+            const state = pick('administrative_area_level_1', true);
+            const county = (pick('administrative_area_level_2', false) || '').replace(/\s+County$/i, '');
+            const city = pick('locality', false) || pick('postal_town', false) || pick('sublocality_level_1', false);
+            document.getElementById('propertyAddress').value = place.formattedAddress || '';
+            document.getElementById('state').value = state;
+            document.getElementById('county').value = county;
+            document.getElementById('city').value = city;
+            if (window.onPlaceResolved) window.onPlaceResolved();
+          } catch (e) { /* leave fields for manual entry */ }
+        });
+      } catch (e) { /* Maps failed to load -> manual address input remains */ }
+    };
+  </script>
+  <script async src="https://maps.googleapis.com/maps/api/js?key=<%= googleMapsApiKey %>&libraries=places&loading=async&callback=__initPlaces"></script>
+  <% } %>
 </body>
 </html>

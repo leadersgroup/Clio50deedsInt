@@ -58,6 +58,7 @@ orderRouter.get('/:draftId', async (req, res, next) => {
       initialDeedType: deedTypeForParties(draft.data.transferFrom?.value, draft.data.transferTo?.value),
       transferParties: TRANSFER_PARTIES,
       googleMapsApiKey: config.googleMapsApiKey,
+      matterUrl: draft.clio_matter_id ? `${config.clio.authBase}/nc/#/matters/${draft.clio_matter_id}` : '',
     });
   } catch (err) {
     next(err);

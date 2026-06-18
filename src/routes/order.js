@@ -118,17 +118,19 @@ orderRouter.post('/:draftId/upload', async (req, res, next) => {
     await updateDraftData(draft.id, data);
 
     // If the order already exists (post-order upload via the "View/manage" action),
-    // forward the document to the Enterprise order. Best-effort — the file is hosted
-    // by URL regardless, so 50deeds can fetch it even if this endpoint isn't live yet.
+    // forward the document to the Enterprise order. The file is hosted by URL
+    // regardless; `attached` tells the UI whether it actually reached the order.
+    let attached = false;
     if (draft.order_id) {
       try {
         await addOrderAttachment(draft.order_id, { file_url: fileUrl, file_name: saved.fileName, file_size: saved.sizeBytes });
+        attached = true;
       } catch (err) {
         console.error('[order] forward attachment to enterprise order failed:', err.status || '', err.message);
       }
     }
 
-    res.json({ id: saved.id, file_name: saved.fileName, file_size: saved.sizeBytes, file_url: fileUrl });
+    res.json({ id: saved.id, file_name: saved.fileName, file_size: saved.sizeBytes, file_url: fileUrl, attached });
   } catch (err) {
     next(err);
   }

@@ -89,9 +89,14 @@
             if (r.ok) {
               const row = document.createElement('div');
               row.className = 'frow';
-              row.innerHTML = '<span>📄 ' + d.file_name + '</span><span class="muted">sent</span>';
+              const tag = d.attached
+                ? '<span style="color:#1a7f4b;font-weight:700">sent to 50deeds</span>'
+                : '<span style="color:#b26a00">stored — not yet attached</span>';
+              row.innerHTML = '<span>📄 ' + d.file_name + '</span>' + tag;
               list.appendChild(row);
-              status.textContent = '';
+              status.textContent = d.attached
+                ? ''
+                : 'Uploaded and stored, but 50deeds doesn’t yet accept documents on an existing order — it will attach automatically once that endpoint is live.';
             } else {
               status.textContent = d.error || 'Upload failed.';
             }

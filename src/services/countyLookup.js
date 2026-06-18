@@ -41,18 +41,9 @@ export async function lookupProperty({ address, state, county }) {
   };
 }
 
-function mockLookup({ address, state, county }) {
-  if (!address) return { found: false, apn: '', legalDescription: '', currentOwner: '', priorDeedReference: '', county: county || '', state: state || '' };
-  // Deterministic pseudo-APN derived from the address so tests are stable.
-  const seed = Array.from(address).reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
-  const apn = `${String(seed % 1000).padStart(3, '0')}-${String((seed >>> 4) % 100).padStart(2, '0')}-${String((seed >>> 8) % 1000).padStart(3, '0')}`;
-  return {
-    found: true,
-    apn,
-    legalDescription: `LOT ${seed % 50 || 1}, BLOCK ${seed % 12 || 1}, AS PER MAP RECORDED IN BOOK ${seed % 200} PAGE ${seed % 99}, ${(county || 'COUNTY').toUpperCase()} RECORDS`,
-    currentOwner: 'AS SHOWN ON CURRENT VESTING DEED',
-    priorDeedReference: `INST# ${2000000 + (seed % 999999)}`,
-    county: county || 'Sample County',
-    state: state || '',
-  };
+// Mock county lookup is DISABLED — we never fabricate APN / legal description /
+// prior-deed data. Without a real COUNTY_LOOKUP_URL these stay empty (so no fake
+// legal data is ever submitted on an order); the real lookup fills them once set.
+function mockLookup({ state, county }) {
+  return { found: false, apn: '', legalDescription: '', currentOwner: '', priorDeedReference: '', county: county || '', state: state || '' };
 }

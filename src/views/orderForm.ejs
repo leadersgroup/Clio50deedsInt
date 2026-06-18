@@ -26,10 +26,13 @@
     .arrow{color:var(--muted);font-weight:700;}
     .transfer .desc{color:var(--muted);font-style:italic;font-size:13px;margin-top:8px;}
     .linkbtn{margin-top:10px;background:none;border:none;color:var(--blue);font-weight:700;font-size:13px;cursor:pointer;padding:0;}
-    .pricebox{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;align-items:center;gap:12px;color:var(--muted);font-size:14px;margin-top:18px;}
-    .pricebox.has-price{color:var(--ink);}
-    .pricebox .amt{font-size:22px;font-weight:800;}
-    .ico{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--muted);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-style:italic;flex:0 0 auto;}
+    .price-head{display:flex;align-items:center;gap:8px;font-weight:800;font-size:18px;margin:24px 0 12px;}
+    .price-head .price-ico{color:var(--blue);}
+    .price-card{border:1px solid var(--line);border-radius:12px;padding:16px 20px;background:#fcfdff;}
+    .price-empty{color:var(--muted);font-size:14px;}
+    .price-row{display:flex;justify-content:space-between;align-items:center;font-size:15px;color:#3a4a63;padding:7px 0;}
+    .price-total{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);margin-top:8px;padding-top:14px;font-weight:800;font-size:16px;}
+    .price-total .amt{font-size:24px;font-weight:800;}
     .docs-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:22px;}
     .docs-head .lab{font-size:13px;font-weight:700;}
     .docs-head .lab .muted{font-weight:500;}
@@ -90,9 +93,10 @@
         <label>New Owner Name <span class="muted" id="toLabel"></span></label>
         <input type="text" name="granteeName" id="granteeName" value="<%= d.granteeName.value %>" placeholder="Name of the trust, individual, or company receiving title" required />
 
-        <div class="pricebox" id="priceBox">
-          <span class="ico">i</span>
-          <span id="priceText">Enter valid property address to calculate the price.</span>
+        <div class="price-head"><span class="price-ico">&#127991;</span> Price Estimate</div>
+        <div class="price-card">
+          <div class="price-empty" id="priceEmpty">Enter a valid property address to calculate the price.</div>
+          <div id="priceLines" style="display:none"></div>
         </div>
 
         <label>Additional Instructions (Optional)</label>
@@ -166,9 +170,33 @@
       }
     }
 
-    function setPrice(html, isPrice) {
-      $('priceText').innerHTML = html;
-      $('priceBox').classList.toggle('has-price', !!isPrice);
+    function showPriceMsg(msg) {
+      $('priceLines').style.display = 'none';
+      $('priceEmpty').style.display = 'block';
+      $('priceEmpty').textContent = msg;
+    }
+    function renderPrice(data) {
+      if (!data || !data.display) { showPriceMsg('Enter a valid property address to calculate the price.'); return; }
+      const money = (n) => '$' + Number(n || 0).toFixed(2);
+      const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      const b = data.breakdown;
+      const rows = [];
+      let total;
+      if (b && typeof b.total === 'number') {
+        rows.push(['Service Fee', money(b.service_fee)]);
+        rows.push(['Estimated Recording Fee', money(Number(b.recording_fee || 0) + Number(b.trust_recording_fee || 0))]);
+        if (Number(b.fincen_fee) > 0) rows.push(['FinCEN Fee', money(b.fincen_fee)]);
+        if (Number(b.premium_discount) > 0) rows.push(['Discount', '-' + money(b.premium_discount)]);
+        total = money(b.total);
+      } else {
+        rows.push(['Estimated Total', data.display]);
+        total = data.display;
+      }
+      let html = rows.map((r) => '<div class="price-row"><span>' + esc(r[0]) + '</span><span>' + esc(r[1]) + '</span></div>').join('');
+      html += '<div class="price-total"><span>Total Price</span><span class="amt">' + esc(total) + '</span></div>';
+      $('priceLines').innerHTML = html;
+      $('priceLines').style.display = 'block';
+      $('priceEmpty').style.display = 'none';
     }
 
     function validate() {
@@ -204,8 +232,8 @@
     // ── Address → county lookup → price ──────────────────────────────────────
     async function lookupAndPrice() {
       const address = $('propertyAddress').value.trim();
-      if (!address) { setPrice('Enter valid property address to calculate the price.', false); return; }
-      setPrice('Calculating price…', false);
+      if (!address) { showPriceMsg('Enter a valid property address to calculate the price.'); return; }
+      showPriceMsg('Calculating price…');
       try {
         const r = await fetch('/order/<%= draftId %>/county-lookup', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -225,14 +253,14 @@
 
     async function updatePrice() {
       const state = $('state').value.trim().toUpperCase();
-      if (state.length !== 2) { setPrice('Enter valid property address to calculate the price.', false); return; }
+      if (state.length !== 2) { renderPrice(null); return; }
       try {
         const p = new URLSearchParams({ state, county: $('county').value.trim(), deedType: $('deedType').value });
         const r = await fetch('/order/price?' + p.toString());
-        const d = await r.json();
-        setPrice('<span class="amt">' + (d.display || '—') + '</span>', true);
+        const data = await r.json();
+        renderPrice(data);
       } catch (e) {
-        setPrice('Could not calculate price automatically — we’ll confirm before payment.', false);
+        showPriceMsg('Could not calculate price automatically — we’ll confirm before payment.');
       }
     }
 

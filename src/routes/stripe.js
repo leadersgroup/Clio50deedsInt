@@ -3,6 +3,7 @@ import { config } from '../config.js';
 import { stripe } from '../stripe/client.js';
 import { getDraftByStripeSession, getDraft, markDraft, updateDraftData } from '../db/drafts.js';
 import { submitPaidOrder } from '../services/orderSystem.js';
+import { postMatterNote } from '../clio/notes.js';
 
 export const stripeRouter = express.Router();
 
@@ -65,4 +66,35 @@ export async function finalizePaidOrder(session) {
   data.enterpriseCustomOrderId = order.customOrderId;
   await updateDraftData(draft.id, data);
   await markDraft(draft.id, { status: 'paid', orderId: order.id });
+
+  // Write a confirmation Note back to the Clio matter so the attorney sees the order
+  // inside Clio. Best-effort: a failure here (e.g. missing Notes write permission)
+  // must never undo the finalized order.
+  try {
+    if (draft.clio_user_id && draft.clio_matter_id) {
+      await postMatterNote(draft.clio_user_id, draft.clio_matter_id, buildOrderNote(draft, order, session));
+    }
+  } catch (err) {
+    console.error('[clio] matter note post failed:', err.status || '', err.message);
+  }
+}
+
+// Build the confirmation note (subject + detail) posted to the Clio matter.
+function buildOrderNote(draft, order, session) {
+  const data = draft.data || {};
+  const v = (f) => (data[f] && typeof data[f] === 'object' ? data[f].value : data[f]) || '';
+  const amount = typeof session.amount_total === 'number' ? `$${(session.amount_total / 100).toFixed(2)}` : '';
+  const ref = order.customOrderId || order.id || '';
+  const lines = [
+    'Deed order submitted to 50deeds.',
+    '',
+    `Order #: ${ref}${order.status ? ` (status: ${order.status})` : ''}`,
+    v('transferFrom') || v('transferTo') ? `Transfer: ${v('transferFrom') || '?'} → ${v('transferTo') || '?'}` : null,
+    v('deedType') ? `Deed type: ${v('deedType')}` : null,
+    v('propertyAddress') ? `Property: ${v('propertyAddress')}` : null,
+    v('grantorName') ? `Grantor (homeowner): ${v('grantorName')}` : null,
+    v('granteeName') ? `Grantee (new owner): ${v('granteeName')}` : null,
+    amount ? `Amount paid: ${amount}` : null,
+  ].filter((x) => x !== null);
+  return { subject: `50deeds deed order ${ref}`.trim(), detail: lines.join('\n') };
 }

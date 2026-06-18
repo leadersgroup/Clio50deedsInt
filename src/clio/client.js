@@ -49,6 +49,45 @@ export async function clioGet(clioUserId, path, { query = {}, allowOneAuthRetry 
   }
 }
 
+// Authenticated POST against the Clio Manage API for a given user. Same auth/retry
+// behavior as clioGet. Used for write-backs (e.g. posting a Note to a matter).
+export async function clioPost(clioUserId, path, body, { allowOneAuthRetry = true } = {}) {
+  const url = buildUrl(path, {});
+
+  let attempt = 0;
+  let didAuthRetry = false;
+
+  while (true) {
+    const accessToken = await getValidAccessToken(clioUserId);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) return res.json();
+
+    if (res.status === 401 && allowOneAuthRetry && !didAuthRetry) {
+      didAuthRetry = true;
+      continue;
+    }
+    // 403 = missing write permission (e.g. Notes not granted) — surface to caller.
+    if (res.status === 403) {
+      throw httpError(res, await safeText(res));
+    }
+    if ((res.status === 429 || res.status >= 500) && attempt < MAX_RETRIES) {
+      await sleep(retryDelayMs(res, attempt));
+      attempt++;
+      continue;
+    }
+    throw httpError(res, await safeText(res));
+  }
+}
+
 function buildUrl(path, query) {
   let base;
   if (/^https?:\/\//.test(path)) {

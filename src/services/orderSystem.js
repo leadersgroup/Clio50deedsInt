@@ -13,6 +13,9 @@ export async function submitPaidOrder(draft, { stripeSessionId, amountCents } = 
   // so matter identity rides in additional_instructions + custom traceability).
   const traceLines = [
     `Source: Clio Manage integration`,
+    val('transferFrom') || val('transferTo')
+      ? `Transfer parties: ${val('transferFrom') || '?'} → ${val('transferTo') || '?'}`
+      : null,
     draft.display_number ? `Clio matter: ${draft.display_number}` : null,
     draft.clio_matter_id ? `Clio matter id: ${draft.clio_matter_id}` : null,
     stripeSessionId ? `Stripe session: ${stripeSessionId}` : null,

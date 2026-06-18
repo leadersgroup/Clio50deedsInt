@@ -4,7 +4,7 @@ import { getDraft, updateDraftData, setDraftStripeSession } from '../db/drafts.j
 import { saveFile, getFile } from '../db/files.js';
 import { lookupProperty } from '../services/countyLookup.js';
 import { resolvePrice, dollars } from '../services/priceTable.js';
-import { isValidDeedType, DEED_TYPES } from '../services/deedTypes.js';
+import { isValidDeedType, DEFAULT_DEED_TYPE, TRANSFER_PARTIES } from '../services/deedTypes.js';
 import { stripe } from '../stripe/client.js';
 
 export const orderRouter = express.Router();
@@ -49,18 +49,12 @@ orderRouter.get('/:draftId', async (req, res, next) => {
       county: draft.data.county?.value,
       deedType: draft.data.deedType?.value,
     });
-    const selectedDeedType =
-      draft.data.deedType?.value || (DEED_TYPES.find((t) => t.estate) || DEED_TYPES[0]).value;
-    const deedMeta = Object.fromEntries(
-      DEED_TYPES.map((t) => [t.value, { from: t.from, to: t.to, transfer: t.transfer }]),
-    );
     res.render('orderForm', {
       draftId: draft.id,
       d: draft.data,
       priceDisplay: price.display,
-      deedTypes: DEED_TYPES,
-      selectedDeedType,
-      deedMeta,
+      defaultDeedType: DEFAULT_DEED_TYPE,
+      transferParties: TRANSFER_PARTIES,
     });
   } catch (err) {
     next(err);
@@ -138,7 +132,8 @@ orderRouter.post('/:draftId/submit', async (req, res, next) => {
     const body = req.body || {};
     const state = String(body.state || draft.data.state?.value || '').toUpperCase();
     const county = String(body.county || draft.data.county?.value || '');
-    const deedType = String(body.deedType || '');
+    // All transfer-party combinations map to the single Enterprise deed type.
+    const deedType = String(body.deedType || DEFAULT_DEED_TYPE);
 
     if (!isValidDeedType(deedType)) {
       return res.status(400).send('Please choose a valid deed type.');
@@ -148,6 +143,7 @@ orderRouter.post('/:draftId/submit', async (req, res, next) => {
     const editable = [
       'grantorName', 'grantorAddress', 'granteeName', 'propertyAddress', 'county', 'state',
       'apn', 'legalDescription', 'priorDeedReference', 'deedType', 'contactEmail', 'additionalInstructions',
+      'transferFrom', 'transferTo',
     ];
     const data = draft.data;
     for (const f of editable) {

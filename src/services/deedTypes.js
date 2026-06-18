@@ -61,3 +61,12 @@ export const DEED_TYPES = [
 export function isValidDeedType(value) {
   return DEED_TYPES.some((d) => d.value === value);
 }
+
+// All Clio-sourced orders currently map to this single Enterprise deed type.
+// The attorney's chosen transfer parties (from/to) are captured separately and
+// recorded in the order notes rather than changing the deed type.
+export const DEFAULT_DEED_TYPE =
+  'Transfer from individual to own Revocable Trust as grantor: FinCEN non-reportable';
+
+// Party options offered in the "transfer parties" selector.
+export const TRANSFER_PARTIES = ['Individual', 'Trust', 'Company'];

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>New Order — 50deeds</title>
   <style>
-    :root{--ink:#1a2b4a;--muted:#6b7a93;--line:#e2e8f2;--chip:#eaf0fb;--chipink:#2b4a86;--blue:#2563eb;--blue-dim:#a9bff2;--soft:#f7f9fc;--green:#1a7f4b;--amber:#b26a00;}
+    :root{--ink:#1a2b4a;--muted:#6b7a93;--line:#e2e8f2;--chip:#eaf0fb;--chipink:#2b4a86;--blue:#2563eb;--blue-dim:#a9bff2;--soft:#f7f9fc;}
     *{box-sizing:border-box;}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:#fafbfd;margin:0;}
     .wrap{max-width:760px;margin:0 auto;padding:24px 20px 80px;}
@@ -16,7 +16,7 @@
     .card-title{font-size:16px;font-weight:800;margin:0 0 18px;}
     label{display:block;font-size:14px;font-weight:700;margin:18px 0 8px;}
     label:first-of-type{margin-top:0;}
-    input[type=text],input[type=email],textarea,select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink);}
+    input[type=text],input[type=email],textarea{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;background:#fff;color:var(--ink);}
     input::placeholder,textarea::placeholder{color:#9aa7bd;}
     textarea{min-height:84px;resize:vertical;}
     .transfer{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
@@ -24,7 +24,7 @@
     .chip{display:inline-block;background:var(--chip);color:var(--chipink);font-weight:700;font-size:13px;padding:3px 12px;border-radius:999px;}
     .arrow{color:var(--muted);font-weight:700;}
     .transfer .desc{color:var(--muted);font-style:italic;font-size:13px;margin-top:8px;}
-    .transfer select{margin-top:12px;font-size:13px;padding:9px 10px;}
+    .linkbtn{margin-top:10px;background:none;border:none;color:var(--blue);font-weight:700;font-size:13px;cursor:pointer;padding:0;}
     .pricebox{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;align-items:center;gap:12px;color:var(--muted);font-size:14px;margin-top:18px;}
     .pricebox.has-price{color:var(--ink);}
     .pricebox .amt{font-size:22px;font-weight:800;}
@@ -40,6 +40,19 @@
     .submit-row{display:flex;justify-content:flex-end;margin-top:22px;}
     .btn-submit{background:var(--blue);color:#fff;border:none;border-radius:12px;padding:13px 24px;font-weight:800;font-size:15px;cursor:pointer;}
     .btn-submit:disabled{background:var(--blue-dim);cursor:not-allowed;}
+
+    /* Transfer-parties modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50;}
+    .modal-backdrop.open{display:flex;}
+    .modal{background:#fff;border-radius:14px;max-width:430px;width:100%;padding:24px 24px 22px;position:relative;box-shadow:0 20px 60px rgba(15,23,42,.25);}
+    .modal h2{font-size:18px;font-weight:800;margin:0 0 18px;}
+    .modal-x{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;line-height:1;}
+    .q{font-size:14px;font-weight:700;margin:14px 0 10px;}
+    .opts{display:flex;gap:10px;}
+    .opt{flex:1;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:12px 8px;font-weight:700;font-size:14px;cursor:pointer;}
+    .opt.sel{border-color:var(--blue);background:#eef3fe;color:var(--chipink);box-shadow:0 0 0 1px var(--blue) inset;}
+    .btn-continue{width:100%;margin-top:22px;background:var(--blue);color:#fff;border:none;border-radius:12px;padding:13px;font-weight:800;font-size:15px;cursor:pointer;}
+    .btn-continue:disabled{background:var(--blue-dim);cursor:not-allowed;}
   </style>
 </head>
 <body>
@@ -60,14 +73,8 @@
             <span class="arrow">&rarr;</span>
             <span>To:</span> <span class="chip" id="toChip">&mdash;</span>
           </div>
-          <div class="desc" id="transferDesc"></div>
-          <select name="deedType" id="deedType" required>
-            <% deedTypes.forEach(function(t){ %>
-              <option value="<%= t.value %>" <%= selectedDeedType === t.value ? 'selected' : '' %>>
-                <%= t.transfer %><%= (/reportable/i.test(t.value) && !/non-reportable/i.test(t.value)) ? ' — FinCEN reportable' : '' %>
-              </option>
-            <% }) %>
-          </select>
+          <div class="desc" id="transferDesc">Choose who is transferring and who is receiving the property.</div>
+          <button type="button" class="linkbtn" id="editTransfer">Choose transfer parties</button>
         </div>
 
         <label>Property Address</label>
@@ -97,6 +104,10 @@
         <div class="sub-note" id="uploadStatus"></div>
       </div>
 
+      <!-- Deed type is fixed; transfer parties are captured for the order notes. -->
+      <input type="hidden" name="deedType" id="deedType" value="<%= defaultDeedType %>" />
+      <input type="hidden" name="transferFrom" id="transferFrom" value="<%= d.transferFrom ? d.transferFrom.value : '' %>" />
+      <input type="hidden" name="transferTo" id="transferTo" value="<%= d.transferTo ? d.transferTo.value : '' %>" />
       <!-- Required by the Enterprise order but derived/pre-filled, not shown as primary fields -->
       <input type="hidden" name="contactEmail" id="contactEmail" value="<%= d.contactEmail.value %>" />
       <input type="hidden" name="county" id="county" value="<%= d.county.value %>" />
@@ -113,16 +124,40 @@
     </form>
   </div>
 
+  <!-- Transfer-parties modal -->
+  <div class="modal-backdrop" id="modal">
+    <div class="modal">
+      <button type="button" class="modal-x" id="modalClose" aria-label="Close">&times;</button>
+      <h2>Tell us about the transfer parties</h2>
+      <div class="q">Who is transferring the property?</div>
+      <div class="opts" data-group="from">
+        <% transferParties.forEach(function(p){ %><button type="button" class="opt" data-val="<%= p %>"><%= p %></button><% }) %>
+      </div>
+      <div class="q">Who is receiving the property?</div>
+      <div class="opts" data-group="to">
+        <% transferParties.forEach(function(p){ %><button type="button" class="opt" data-val="<%= p %>"><%= p %></button><% }) %>
+      </div>
+      <button type="button" class="btn-continue" id="modalContinue" disabled>Continue</button>
+    </div>
+  </div>
+
   <script>
     const $ = (id) => document.getElementById(id);
-    const DEED = <%- JSON.stringify(deedMeta) %>;
+    let selFrom = $('transferFrom').value || '';
+    let selTo = $('transferTo').value || '';
 
-    function refreshTransfer() {
-      const m = DEED[$('deedType').value] || { from: '—', to: '—', transfer: '' };
-      $('fromChip').textContent = m.from;
-      $('toChip').textContent = m.to;
-      $('transferDesc').textContent = m.transfer;
-      $('toLabel').textContent = m.to ? '(the ' + m.to + ')' : '';
+    function applyTransfer() {
+      $('fromChip').textContent = selFrom || '—';
+      $('toChip').textContent = selTo || '—';
+      $('transferFrom').value = selFrom;
+      $('transferTo').value = selTo;
+      if (selFrom && selTo) {
+        $('transferDesc').textContent = 'Transfer from ' + selFrom + ' to ' + selTo + '.';
+        $('toLabel').textContent = '(the ' + selTo + ')';
+      } else {
+        $('transferDesc').textContent = 'Choose who is transferring and who is receiving the property.';
+        $('toLabel').textContent = '';
+      }
     }
 
     function setPrice(html, isPrice) {
@@ -131,11 +166,36 @@
     }
 
     function validate() {
-      const ok = $('deedType').value && $('propertyAddress').value.trim()
+      const ok = selFrom && selTo && $('propertyAddress').value.trim()
         && $('grantorName').value.trim() && $('granteeName').value.trim();
       $('submitBtn').disabled = !ok;
     }
 
+    // ── Modal ──────────────────────────────────────────────────────────────
+    function openModal() {
+      document.querySelectorAll('.opts[data-group="from"] .opt').forEach((b) => b.classList.toggle('sel', b.dataset.val === selFrom));
+      document.querySelectorAll('.opts[data-group="to"] .opt').forEach((b) => b.classList.toggle('sel', b.dataset.val === selTo));
+      $('modalContinue').disabled = !(selFrom && selTo);
+      $('modal').classList.add('open');
+    }
+    function closeModal() { $('modal').classList.remove('open'); }
+
+    document.querySelectorAll('.opts').forEach((group) => {
+      group.addEventListener('click', (e) => {
+        const btn = e.target.closest('.opt');
+        if (!btn) return;
+        group.querySelectorAll('.opt').forEach((b) => b.classList.remove('sel'));
+        btn.classList.add('sel');
+        const val = btn.dataset.val;
+        if (group.dataset.group === 'from') selFrom = val; else selTo = val;
+        $('modalContinue').disabled = !(selFrom && selTo);
+      });
+    });
+    $('modalContinue').addEventListener('click', () => { closeModal(); applyTransfer(); validate(); });
+    $('modalClose').addEventListener('click', closeModal);
+    $('editTransfer').addEventListener('click', openModal);
+
+    // ── Address → county lookup → price ──────────────────────────────────────
     async function lookupAndPrice() {
       const address = $('propertyAddress').value.trim();
       if (!address) { setPrice('Enter valid property address to calculate the price.', false); return; }
@@ -170,7 +230,7 @@
       }
     }
 
-    // File upload: read as base64, POST JSON, list the result.
+    // ── File upload (base64 → JSON) ──────────────────────────────────────────
     $('fileInput').addEventListener('change', async (e) => {
       const files = Array.from(e.target.files || []);
       for (const f of files) {
@@ -204,13 +264,14 @@
       e.target.value = '';
     });
 
-    $('deedType').addEventListener('change', () => { refreshTransfer(); updatePrice(); validate(); });
     ['propertyAddress', 'grantorName', 'granteeName'].forEach((id) => $(id).addEventListener('input', validate));
     $('propertyAddress').addEventListener('blur', lookupAndPrice);
 
-    refreshTransfer();
+    applyTransfer();
     validate();
     if ($('propertyAddress').value.trim()) lookupAndPrice();
+    // First-run: prompt for transfer parties like the native flow.
+    if (!(selFrom && selTo)) openModal();
   </script>
 </body>
 </html>

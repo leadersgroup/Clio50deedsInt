@@ -174,6 +174,7 @@
     const $ = (id) => document.getElementById(id);
     let selFrom = $('transferFrom').value || '';
     let selTo = $('transferTo').value || '';
+    let uploading = false;
 
     function applyTransfer() {
       $('fromChip').textContent = selFrom || '—';
@@ -228,7 +229,7 @@
     }
     function validate() {
       const ny = isNY();
-      const ok = selFrom && selTo && $('propertyAddress').value.trim()
+      const ok = !uploading && selFrom && selTo && $('propertyAddress').value.trim()
         && $('grantorName').value.trim() && $('granteeName').value.trim()
         && $('contactEmail').value.trim()
         && (!ny || ($('grantorSsn').value.trim() && $('granteeSsn').value.trim()));
@@ -299,6 +300,11 @@
     // ── File upload (base64 → JSON) ──────────────────────────────────────────
     $('fileInput').addEventListener('change', async (e) => {
       const files = Array.from(e.target.files || []);
+      if (!files.length) return;
+      // Block submit while uploads are in flight so an order can't be placed before
+      // its supporting documents finish attaching.
+      uploading = true;
+      validate();
       for (const f of files) {
         if (f.size > 14 * 1024 * 1024) {
           $('uploadStatus').textContent = f.name + ' is too large (max 14 MB).';
@@ -331,6 +337,8 @@
           $('uploadStatus').textContent = 'Upload failed for ' + f.name + '.';
         }
       }
+      uploading = false;
+      validate();
       e.target.value = '';
     });
 

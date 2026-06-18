@@ -96,6 +96,7 @@ customActionRouter.get('/custom-action', async (req, res, next) => {
       const u = await fetchUser(clioUserId, clioUserId);
       orderData.attorney = {
         name: u?.name || [u?.first_name, u?.last_name].filter(Boolean).join(' '),
+        company: u?.account?.name || '',
         email: u?.email || '',
         phone: u?.phone_number || '',
       };

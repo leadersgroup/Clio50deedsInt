@@ -12,5 +12,6 @@ export async function postMatterNote(clioUserId, matterId, { subject, detail }) 
       detail,
     },
   });
+  console.log('[clio] note posted to matter', matterId, '-> note id', json.data?.id);
   return json.data;
 }

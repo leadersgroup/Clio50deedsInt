@@ -61,22 +61,30 @@ export const DEED_TYPES = [
 // Party options offered in the "transfer parties" selector.
 export const TRANSFER_PARTIES = ['Individual', 'Trust', 'Company'];
 
-// The attorney picks who is transferring and who is receiving; that From -> To
-// combination maps directly to the Enterprise deed type (9 combinations), e.g.
-// Individual -> Trust => "From individual to trust".
+// The attorney picks who is transferring and who is receiving; that combination
+// maps to the EXACT Enterprise deed-type string. These are verbatim from the
+// 50deeds backend's accepted list — the irregular casing is intentional and
+// matched exactly so a case-sensitive backend won't reject them.
+const DEED_TYPE_BY_PARTIES = {
+  'individual|individual': 'Individual to individual',
+  'individual|trust': 'Individual to trust',
+  'individual|company': 'Individual to company',
+  'trust|individual': 'Trust to Individual',
+  'trust|trust': 'Trust to trust',
+  'trust|company': 'Trust to company',
+  'company|individual': 'Company to individual',
+  'company|trust': 'Company to Trust',
+  'company|company': 'Company to Company',
+};
+
 export function deedTypeForParties(from, to) {
-  const norm = (x) => String(x || '').trim().toLowerCase();
-  const f = norm(from);
-  const t = norm(to);
-  const valid = TRANSFER_PARTIES.map((p) => p.toLowerCase());
-  if (!valid.includes(f) || !valid.includes(t)) return '';
-  return `From ${f} to ${t}`;
+  const f = String(from || '').trim().toLowerCase();
+  const t = String(to || '').trim().toLowerCase();
+  return DEED_TYPE_BY_PARTIES[`${f}|${t}`] || '';
 }
 
-// The 9 valid Enterprise deed types (one per From/To combination).
-export const PARTY_DEED_TYPES = TRANSFER_PARTIES.flatMap((f) =>
-  TRANSFER_PARTIES.map((t) => deedTypeForParties(f, t)),
-);
+// The 9 valid Enterprise deed types (verbatim).
+export const PARTY_DEED_TYPES = Object.values(DEED_TYPE_BY_PARTIES);
 
 export function isValidDeedType(value) {
   return PARTY_DEED_TYPES.includes(value);

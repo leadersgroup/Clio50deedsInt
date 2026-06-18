@@ -156,7 +156,7 @@
       $('transferFrom').value = selFrom;
       $('transferTo').value = selTo;
       if (selFrom && selTo) {
-        $('deedType').value = 'From ' + selFrom.toLowerCase() + ' to ' + selTo.toLowerCase();
+        $('deedType').value = selFrom + ' to ' + selTo.toLowerCase();
         $('transferDesc').textContent = 'Transfer from ' + selFrom + ' to ' + selTo + '.';
         $('toLabel').textContent = '(the ' + selTo + ')';
       } else {

@@ -2,7 +2,7 @@ import express from 'express';
 import { config } from '../config.js';
 import { getDraft, updateDraftData, setDraftStripeSession } from '../db/drafts.js';
 import { saveFile, getFile } from '../db/files.js';
-import { addOrderAttachment, getOrder, uploadDocument } from '../services/enterpriseApi.js';
+import { getOrder, uploadDocument } from '../services/enterpriseApi.js';
 import { buildOrderList, mergeAttachments } from '../services/manageView.js';
 import { lookupProperty } from '../services/countyLookup.js';
 import { resolvePrice, dollars } from '../services/priceTable.js';
@@ -132,17 +132,8 @@ orderRouter.post('/:draftId/upload', async (req, res, next) => {
     data.attachments.push(attachment);
     await updateDraftData(draft.id, data);
 
-    // Pre-order uploads ride along in the POST /orders attachments at creation.
-    // Post-order uploads (the order already exists) try to link to it directly —
-    // best-effort until the Enterprise add-attachment endpoint exists.
-    if (draft.order_id) {
-      try {
-        await addOrderAttachment(draft.order_id, attachment);
-      } catch (err) {
-        console.error('[order] link attachment to existing order failed:', err.status || '', err.message);
-      }
-    }
-
+    // uploadDocument receives order_id/custom_order_id, so 50deeds attaches the file
+    // to the order (pre-order uploads also ride along in the POST /orders attachments).
     res.json({ ...attachment, attached });
   } catch (err) {
     next(err);

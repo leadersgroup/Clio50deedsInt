@@ -76,26 +76,6 @@ export async function getOrder(orderId) {
   return data;
 }
 
-// Add a document to an EXISTING order (post-creation upload via the manage action).
-// NOTE: the v3.4 doc only accepts attachments at order creation — this needs a
-// 50deeds endpoint (e.g. POST /orders/{id}/attachments). Until that exists the call
-// will error and callers treat it as best-effort (the file is still hosted by URL).
-export async function addOrderAttachment(orderId, { file_url, file_name, file_size }) {
-  const { status, data } = await enterpriseRequest(`/orders/${orderId}/attachments`, 'POST', {
-    file_url,
-    file_name,
-    file_size,
-  });
-  // The endpoint doesn't exist yet (404 "Endpoint not found") — surface that as a
-  // failure so callers don't report a false "sent".
-  if (status >= 400 || data?.error) {
-    const e = new Error(`Enterprise add-attachment unavailable (${status}): ${data?.error || ''}`);
-    e.status = status;
-    throw e;
-  }
-  return data;
-}
-
 export async function registerWebhook(url) {
   const { data } = await enterpriseRequest('/webhooks/register', 'POST', { url });
   return data.webhook || data;

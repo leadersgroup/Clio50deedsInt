@@ -77,6 +77,7 @@ real-estate attorneys.
 |---|---|
 | `icon.svg` | App tile / favicon / Directory icon (square, 512×512) |
 | `logo-horizontal.svg` | Wordmark lockup for docs, emails, the in-app header |
+| `png/` | Ready-to-upload PNG exports: `icon-1024/512/192/32/16.png`, `logo-horizontal.png` (+ `@2x`) |
 
 **The mark:** 50deeds.com's US-flag logo — a navy canton with a white house and red
 flag stripes. `icon.svg` adapts it to a square app tile (navy field, white house, red
@@ -118,7 +119,7 @@ wordmark on a low-contrast background, or rename the app in the lockup.
 ## 6. Typography
 
 - **UI typeface:** Inter (web). Fallback: `Inter, "Segoe UI", system-ui, -apple-system, sans-serif`.
-- **Wordmark:** "50DEEDS.COM" — bold condensed uppercase sans, the **5** in Brand Red and the rest in Brand Navy. For production use 50deeds' official wordmark file; the SVG approximates it with a condensed stack (`'Arial Narrow', 'Inter', sans-serif`).
+- **Wordmark:** "50DEEDS.COM" — one uniform bold uppercase sans (Helvetica/Arial Bold) for both digits and letters, the **5** in Brand Red and the rest in Brand Navy. For production, use 50deeds' official wordmark file.
 - **Headings:** 700–800. **Body:** 400–600. **Eyebrow/labels:** 700, uppercase, +7 tracking (e.g. "FOR CLIO").
 
 ---

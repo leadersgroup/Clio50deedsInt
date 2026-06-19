@@ -14,9 +14,9 @@
     <rect x="138" y="108" width="128" height="30" rx="3"/>
   </g>
 
-  <!-- Wordmark -->
-  <text x="300" y="112" font-family="'Arial Narrow', 'Inter', system-ui, -apple-system, sans-serif" font-size="68" font-weight="800" letter-spacing="-1">
+  <!-- Wordmark (one uniform bold sans for digits + letters) -->
+  <text x="300" y="110" font-family="'Helvetica Neue', Arial, 'Inter', system-ui, -apple-system, sans-serif" font-size="62" font-weight="800" letter-spacing="-1.5">
     <tspan fill="#D0202F">5</tspan><tspan fill="#16294E">0DEEDS.COM</tspan>
   </text>
-  <text x="302" y="150" font-family="'Arial Narrow', 'Inter', system-ui, -apple-system, sans-serif" font-size="23" font-weight="700" letter-spacing="7" fill="#16294E">FOR CLIO</text>
+  <text x="302" y="148" font-family="'Helvetica Neue', Arial, 'Inter', system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" letter-spacing="6" fill="#16294E">FOR CLIO</text>
 </svg>
